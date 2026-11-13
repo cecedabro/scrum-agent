@@ -23,7 +23,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_deadlines_service.py -q
 - [x] T08: JSON API per SPEC 3.5 (`GET`/`POST /api/v1/deadlines`, `DELETE /api/v1/deadlines/{id}`), behind auth. Write `tests/test_deadlines_api.py` (field names and formats, `include_past`, 201, 422 stores nothing, 204, 404).
   accept: cd backend && uv run pytest tests/test_deadlines_api.py -q
-- [ ] T09: `/deadlines` page per SPEC 3.2–3.3: upcoming list with `datum` and `relatief`, collapsed past list, add form with Post/Redirect/Get and 422 + Dutch field errors. Write `tests/test_page_deadlines.py` (empty state, order, labels for a fixed `today` via a clock override, add redirects 303 and stores, invalid → 422 and stores nothing).
+- [~] T09: `/deadlines` page per SPEC 3.2–3.3: upcoming list with `datum` and `relatief`, collapsed past list, add form with Post/Redirect/Get and 422 + Dutch field errors. Write `tests/test_page_deadlines.py` (empty state, order, labels for a fixed `today` via a clock override, add redirects 303 and stores, invalid → 422 and stores nothing). — skipped: $ cd backend && uv run pytest tests/test_page_deadlines.py -q  (exit 4)
   accept: cd backend && uv run pytest tests/test_page_deadlines.py -q
 - [ ] T10: Edit and delete from the page (SPEC 3.4): `GET/POST /deadlines/{id}/edit`, `POST /deadlines/{id}/delete`, 404 for unknown ids; buttons on each row. Write `tests/test_page_deadlines_edit.py`.
   accept: cd backend && uv run pytest tests/test_page_deadlines_edit.py -q
