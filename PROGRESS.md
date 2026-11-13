@@ -87,3 +87,11 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `tests/test_page_settings.py` (16 tests): covers form rendering, field presence, weekday options, webhook status display, default values, auth requirement (401), valid save + redirect, DB persistence, full round-trip, invalid weekday/time/sprint length/sprint days before/deadline days before validation errors (Dutch messages), test endpoint renders result, test button form exists.
 - Gotcha: `POST /settings` renders 200 with errors on validation failure (not 422); `POST /settings/test` renders the settings page with `test_result` inline (not a redirect), so tests must assert on the POST response directly.
 - All 275 tests pass, 97% coverage, `make check` exit 0. Next task should wire settings into the cron tick (e.g., load schedule from DB).
+
+## T17
+- Created `backend/tests/test_schedule_deadlines.py` (16 tests) covering SPEC 6.3 deadline reminders: 2-day, 1-day, 0-day ("vandaag"), moved-deadline ref_key change, 3-day out not included, multiple deadlines same day, disabled state, window timing (before/after), and post-log filtering (sent skips, failed resends).
+- Fixed `_validate_days_before` in `backend/app/settings.py` to accept `0` (range changed from 1-14 to 0-14).
+- Fixed `validate_settings` in `backend/app/settings.py` to check `0 <= d <= 14` and updated Dutch error message.
+- Fixed `_local_now` test helper: changed from naive datetime to UTC-aware via `ZoneInfo("Europe/Amsterdam")` + `astimezone(timezone.utc)` to match `_in_window` comparison expectations.
+- Removed `("weekdays_before", [0])` from invalid values param in `test_settings_service.py` since `0` is now valid.
+- Gotcha: `_local_now` returns `datetime` (not `date`), so `date_val.day` was wrong — `date_val` is already a day integer. The `from __future__ import annotations` at top of test file means type hints are strings; don't evaluate them at import time.

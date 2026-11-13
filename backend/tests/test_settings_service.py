@@ -75,7 +75,6 @@ class TestValidation:
             ("sprint_days_before", 15),
             ("sprint_days_before", 0),
             ("sprint_time", "abc"),
-            ("weekdays_before", [0]),
             ("weekdays_before", [15]),
         ],
     )

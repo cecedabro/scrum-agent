@@ -98,8 +98,8 @@ def _validate_days_before(value: str) -> tuple[bool, list[int], str]:
     except ValueError:
         return False, [], "Ongeldige waarde in 'dagen vooraf'"
     for d in days:
-        if d < 1 or d > 14:
-            return False, [], "waarden voor 'dagen vooraf' moeten tussen 1 en 14 liggen"
+        if d < 0 or d > 14:
+            return False, [], "waarden voor 'dagen vooraf' moeten tussen 0 en 14 liggen"
     return True, sorted(days, reverse=True), ""
 
 
@@ -153,8 +153,8 @@ def validate_settings(settings: ReminderSettings) -> list[str]:
 
     # weekdays_before (deadline reminders)
     for d in settings.weekdays_before:
-        if d < 1 or d > 14:
-            errors.append("waarden voor 'dagen vooraf' moeten tussen 1 en 14 liggen")
+        if d < 0 or d > 14:
+            errors.append("waarden voor 'dagen vooraf' moeten tussen 0 en 14 liggen")
             break
 
     return errors
