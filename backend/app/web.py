@@ -102,7 +102,6 @@ async def deadlines_add(
     from datetime import date
     from datetime import time as dt_time
 
-
     with next(get_db()) as session:
         # Validate
         errors: dict[str, str] = {}

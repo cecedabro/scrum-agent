@@ -29,7 +29,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_page_deadlines_edit.py -q
 
 ## Teams posting
-- [ ] T11: `app/cards.py` per docs/teams.md: `test_card`, `weekly_overview`, `deadline_reminder`, `sprint_nudge`, all returning Adaptive Card 1.4 dicts with wrapped TextBlocks and Dutch text. Write `tests/test_cards.py` (exact titles for days 0/1/2, "Geen deadlines deze week", week number, FactSet values like "ma 16 nov 23:59", the card is JSON-serialisable).
+- [x] T11: `app/cards.py` per docs/teams.md: `test_card`, `weekly_overview`, `deadline_reminder`, `sprint_nudge`, all returning Adaptive Card 1.4 dicts with wrapped TextBlocks and Dutch text. Write `tests/test_cards.py` (exact titles for days 0/1/2, "Geen deadlines deze week", week number, FactSet values like "ma 16 nov 23:59", the card is JSON-serialisable).
   accept: cd backend && uv run pytest tests/test_cards.py -q
 - [ ] T12: `PostLog` model + migration `0003_post_log`, and `app/teams.py`: `envelope`, `post_card` (SPEC 5.1–5.2: 15 s timeout, 2xx ok, 429/5xx/network retryable, other 4xx permanent, 28 KB cap with "… (ingekort)", error text without the URL). Write `tests/test_teams_post.py` with `httpx.MockTransport` (exact envelope, 202, 429, 400, timeout, a 40 KB card is cut to ≤ 28 KB, the webhook URL never appears in the error).
   accept: cd backend && uv run pytest tests/test_teams_post.py -q

@@ -56,3 +56,8 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Updated `base.html` to load `app.js`. Fixed typo "Nkomende" → "Komende" in deadlines template.
 - Created `backend/tests/test_page_deadlines_edit.py` (30 tests): covers page rendering, add/edit/delete CRUD, validation errors, 404s, input preservation on errors, redirects. All 169 tests pass, 97% coverage, `make check` exit 0.
 - Note: T09 (/deadlines page) was skipped and merged into this task. CSP forbids inline scripts, so delete confirmation uses `class="delete-form"` + `app.js`.
+
+## T11
+- Created `app/cards.py`: pure functions `test_card()`, `weekly_overview()`, `deadline_reminder()`, `sprint_nudge()` returning Adaptive Card 1.4 dicts with `wrap: true` on all body elements; Dutch text via `datum_kort()` and `relatief()`. `_Dict` alias (`dict[str, object]`) used for all return/input types to satisfy MyPy strict mode; `datetime.time` handled via `_time_str()` helper with duck-typing.
+- Created `tests/test_cards.py` (29 tests): verifies card schema version, title patterns, FactSet label format (`"ma 16 nov 23:59"`), relative labels (`"vandaag"`, `"morgen"`, `"over N dagen"`), empty-state messages, week numbers, and JSON serializability. All 198 tests pass, 97% coverage, `make check` exit 0.
+- Note: `deadline_reminder` and `weekly_overview` accept `dict[str, object]` parameters; cast to `date`/`time` before passing to `datum_kort`/`_time_str`. `sprint_nudge` computes weekday from the given `end_date`. `summary_card()` and `teams.envelope()` remain to be implemented by later tasks.
