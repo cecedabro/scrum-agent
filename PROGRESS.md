@@ -13,3 +13,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `tests/test_clock_fmt.py` (31 tests): covers both 2026 DST switch days (spring forward Mar 29, fall back Oct 25), winter/summer UTC offsets, midnight crossings, all weekday/month names, relative labels at boundaries, and default-to-real-clock behavior.
 - Coverage: clock.py 92%, fmt.py 88%, total 94% (≥90% threshold met).
 - Note: `fmt.register_filters()` is available for T05 to wire into the Jinja env.
+
+## T04
+- Added two HTTP middleware in `app/main.py`: `csrf_guard` (SPEC 2.3) and `security_headers` (SPEC 2.4).
+- `csrf_guard` rejects unsafe methods with 403 when `Sec-Fetch-Site: cross-site` or `Origin` host differs from `Host`.
+- Security headers are applied to all responses, including early 403s from CSRF guard (headers manually attached).
+- Helper functions `_origin_host(request)` and `_host_name(host_header)` are exported for testing.
+- Created `tests/test_security.py` (16 tests). All checks pass (`make check` exit 0).
