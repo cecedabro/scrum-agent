@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, time
 
-from sqlalchemy import Date, DateTime, String, Text, Time
+from sqlalchemy import Date, DateTime, Integer, String, Text, Time
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.clock import now_utc
@@ -28,3 +28,18 @@ class Deadline(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
     )
+
+
+class PostLog(Base):
+    __tablename__ = "post_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    ref_key: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(10), nullable=False, default="failed")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
