@@ -5,6 +5,12 @@
 set -euo pipefail
 
 : "${DATABASE_URL:?set DATABASE_URL to a throwaway Postgres database}"
+# Use the psycopg 3 driver even when given a plain postgresql:// URL (the devbox sets one).
+case "$DATABASE_URL" in
+  postgresql://*) DATABASE_URL="postgresql+psycopg://${DATABASE_URL#postgresql://}" ;;
+  postgres://*) DATABASE_URL="postgresql+psycopg://${DATABASE_URL#postgres://}" ;;
+esac
+export DATABASE_URL
 ROOT=$(pwd)
 HELPER="$ROOT/tests/ci/migcheck.py"
 export APP_ENV=development
