@@ -19,9 +19,7 @@ _MAX_DOCX_SIZE = 20 * 1024 * 1024
 
 # Matches a speaker line like "Sanne Bakker   0:02" or "Daan Visser  10:30".
 # The time part is optional in the pattern (``(\d+:)?``) but present in Teams exports.
-_SPEAKER_RE = re.compile(
-    r"^(?P<speaker>.+?)\s+(\d+:)?\d{1,2}:\d{2}$"
-)
+_SPEAKER_RE = re.compile(r"^(?P<speaker>.+?)\s+(\d+:)?\d{1,2}:\d{2}$")
 
 # DOCX Word processing main namespace.
 _NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -147,9 +145,7 @@ def parse_docx(data: bytes) -> list[Turn]:
                 raise TranscriptError("Het bestand bevat geen document.xml")
             info = z.getinfo("word/document.xml")
             if info.file_size > _MAX_DOCX_SIZE:
-                raise TranscriptError(
-                    "Het transcriptbestand is te groot (max 20 MB)"
-                )
+                raise TranscriptError("Het transcriptbestand is te groot (max 20 MB)")
             xml_bytes = z.read("word/document.xml")
 
         # Parse with defusedxml to avoid XXE and billion-laughs attacks.
@@ -157,9 +153,9 @@ def parse_docx(data: bytes) -> list[Turn]:
 
         # Extract paragraph text in order.
         paragraphs: list[str] = []
-        for p in root.iter(f"{{{ _NS['w'] }}}p"):
+        for p in root.iter(f"{{{_NS['w']}}}p"):
             text_parts: list[str] = []
-            for t_elem in p.iter(f"{{{ _NS['w'] }}}t"):
+            for t_elem in p.iter(f"{{{_NS['w']}}}t"):
                 if t_elem.text:
                     text_parts.append(t_elem.text)
             text = "".join(text_parts).strip()
@@ -205,8 +201,6 @@ def parse_docx(data: bytes) -> list[Turn]:
         )
 
     if not turns:
-        raise TranscriptError(
-            "Het transcriptbestand bevat geen herkenbare sprekers"
-        )
+        raise TranscriptError("Het transcriptbestand bevat geen herkenbare sprekers")
 
     return turns

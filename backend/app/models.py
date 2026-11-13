@@ -1,8 +1,9 @@
 """SQLAlchemy models. Every change here needs a new Alembic migration (docs/backend.md)."""
 
 from datetime import date, datetime, time
+from typing import Any
 
-from sqlalchemy import Date, DateTime, Integer, String, Text, Time
+from sqlalchemy import JSON, Date, DateTime, Integer, String, Text, Time
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.clock import now_utc
@@ -53,6 +54,40 @@ class AppSetting(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     value: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
+    )
+
+
+class Job(Base):
+    """A processing job (summary, future kinds)."""
+
+    __tablename__ = "job"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    kind: Mapped[str] = mapped_column(String(50), nullable=False, default="summary")
+    status: Mapped[str] = mapped_column(String(10), nullable=False, default="queued")
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    meeting_date: Mapped[date] = mapped_column(Date, nullable=False)
+    transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result: Mapped[Any | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=now_utc
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AppState(Base):
+    """Key-value store for application state (e.g. model_status, last_wake)."""
+
+    __tablename__ = "app_state"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc
     )

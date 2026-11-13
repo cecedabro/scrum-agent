@@ -145,9 +145,9 @@ def test_oversized_document_xml(tmp_path: Path) -> None:
 def _make_docx_with_paragraphs(paragraphs: list[str]) -> bytes:
     """Create a DOCX with the given paragraph texts (no speaker lines)."""
     NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-    xml_parts = ["<?xml version=\"1.0\"?>", f'<w:document xmlns:w="{NS}">']
+    xml_parts = ['<?xml version="1.0"?>', f'<w:document xmlns:w="{NS}">']
     for para in paragraphs:
-        xml_parts.append(f'<w:p><w:r><w:t>{para}</w:t></w:r></w:p>')
+        xml_parts.append(f"<w:p><w:r><w:t>{para}</w:t></w:r></w:p>")
     xml_parts.append("</w:document>")
     xml = "\n".join(xml_parts)
 
@@ -170,10 +170,12 @@ def test_no_speaker_lines() -> None:
 
 
 def test_single_turn() -> None:
-    data = _make_docx_with_paragraphs([
-        "Alice   0:01",
-        "Hello world.",
-    ])
+    data = _make_docx_with_paragraphs(
+        [
+            "Alice   0:01",
+            "Hello world.",
+        ]
+    )
     turns = parse_docx(data)
     assert len(turns) == 1
     assert turns[0].speaker == "Alice"

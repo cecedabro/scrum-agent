@@ -109,3 +109,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Added `from err` to the `zipfile.BadZipFile` exception handler per ruff B904.
 - Created `backend/tests/test_transcripts_docx.py` (13 tests): sample fixture assertions (11 turns, 4 speakers, first "Sanne Bakker", specific text content), empty bytes, non-zip bytes, zip without `word/document.xml`, oversized `document.xml` (21 MB built in `tmp_path`), no speaker lines → `TranscriptError`, single speaker single turn round-trip.
 - All 363 tests pass, 95% coverage, `make check` exit 0. Next task should implement the worker (`app/worker.py`) that calls `parse_docx()` on uploaded transcript attachments and dispatches to the local LLM.
+
+## T22
+- Added `Job` and `AppState` models to `backend/app/models.py`: Job has columns `id`, `kind` (default "summary"), `status` (default "queued"), `title`, `meeting_date`, `transcript` (text nullable), `result` (JSON nullable), `error` (text nullable), `attempts` (default 0), `created_at`, `started_at`, `finished_at`, `posted_at`. AppState has `key` (pk), `value` (JSON nullable), `updated_at`.
+- Created Alembic migration `backend/alembic/versions/0005_job_app_state.py`: upgrades create both tables with correct server defaults; downgrade drops app_state then job.
+- Created `backend/tests/test_models_job.py` (22 tests): table existence, defaults (queued/summary/0), full insert, status transitions, failed status, different kind, timestamps set, started_at set, AppState insert/update/null/updated_at, column name checks, key is pk, timestamps are UTC, database defaults verification.
+- Gotcha: JSON columns use `Mapped[Any | None]` not `Mapped[dict | None]` to satisfy mypy strict mode. Migration uses `sa.JSON()` type. Both models follow the data model spec in docs/backend.md.
+- All 385 tests pass, 95% coverage, `make check` exit 0. Next task needs the worker that queries `Job` rows with `SKIP LOCKED`.

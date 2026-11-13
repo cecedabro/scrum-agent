@@ -57,7 +57,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_transcripts_vtt.py -q
 - [x] T21: `parse_docx` (SPEC 7.2) with zipfile + defusedxml and the size guard. Write `tests/test_transcripts_docx.py` against `tests/fixtures/sample.docx` (same 11 turns as the VTT) plus a non-zip, a zip without `word/document.xml`, and an oversized entry built in `tmp_path`.
   accept: cd backend && uv run pytest tests/test_transcripts_docx.py -q
-- [ ] T22: `Job` and `AppState` models + migration `0005_job_app_state` per docs/backend.md. Write `tests/test_models_job.py` (defaults: `queued`, attempts 0, kind `summary`).
+- [x] T22: `Job` and `AppState` models + migration `0005_job_app_state` per docs/backend.md. Write `tests/test_models_job.py` (defaults: `queued`, attempts 0, kind `summary`).
   accept: cd backend && uv run pytest tests/test_models_job.py -q
 - [ ] T23: `/meetings` upload (SPEC 7.1): form, size limit, `.vtt`/`.docx` only, 422 with Dutch errors, creates a `queued` job with the `as_text` transcript, never writes the file to disk. Write `tests/test_page_meetings_upload.py` (both samples accepted, `.txt` refused, `MAX_UPLOAD_BYTES + 1` refused, empty VTT refused, rows counted).
   accept: cd backend && uv run pytest tests/test_page_meetings_upload.py -q
