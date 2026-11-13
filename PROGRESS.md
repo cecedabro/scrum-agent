@@ -41,3 +41,11 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_deadlines_service.py` (23 tests): 200 vs 201 chars, empty title with Dutch message, bad time rejection, valid time acceptance, note length, invalid source, create minimal/all fields, update existing/nonexistent, delete existing/nonexistent, sorting by date+time, no-time=end-of-day sorting, between inclusive both ends, upcoming excludes past, past excludes today.
 - Coverage: deadlines.py 92%, total 95% (≥90% met). All 119 tests pass, `make check` exit 0.
 - Note: `now` parameter accepted by all service functions for testability; defaults to `clock.now_utc()`. The `_sort_key` helper is private and not exported. Routes/API layer for deadlines is T08+.
+
+## T08
+- Created `app/deadlines.py` API endpoints: `GET /api/v1/deadlines` (query param `include_past`, defaults to upcoming-only), `POST /api/v1/deadlines` (accepts `DeadlineIn`, returns 201), `DELETE /api/v1/deadlines/{deadline_id}` (204 on success, 404 if missing).
+- Added `DeadlineOut` Pydantic model and `_deadline_to_out()` helper for serialisation. All responses are JSON; routes protected by `require_team` auth.
+- Wired `deadlines_api_router` into `create_app()` in `backend/app/main.py`.
+- Created `backend/tests/test_deadlines_api.py` (20 tests): covers empty list, single deadline, multiple deadlines, `include_past` flag, sorting, 400 on invalid payload, 401 without auth, 404 on unknown id, 422 on bad data, 201 on valid create, 204 on delete, 200+204 after create, `list_deadlines` returns combined past+upcoming when `include_past=true`.
+- Gotcha: `get_db()` is a generator — must call `next(get_db())`, not `get_db()()`. Tests must commit after `create()` so separate API sessions can see the data. SQLAlchemy 2.x requires `scalars().all()` instead of deprecated `scalar_all()`.
+- All 139 tests pass, 95% coverage, `make check` exit 0.

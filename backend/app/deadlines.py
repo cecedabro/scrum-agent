@@ -4,15 +4,19 @@ All public functions take a SQLAlchemy ``Session`` and optionally ``now``
 (a UTC-aware ``datetime``) so tests can pass a fixed moment.
 
 SPEC 3.1 validation lives in the ``DeadlineIn`` pydantic model.
+
+API routes live in ``api_router`` (SPEC 3.5).
 """
 
 from __future__ import annotations
 
 from datetime import date, datetime, time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, field_validator, model_validator
 
+from app.auth import require_team
 from app.clock import now_utc as _now_utc
 from app.models import Deadline
 
@@ -23,6 +27,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Pydantic input model (SPEC 3.1)
 # ---------------------------------------------------------------------------
+
 
 class DeadlineIn(BaseModel):
     """Validated input for creating / updating a deadline.
@@ -77,6 +82,7 @@ class DeadlineIn(BaseModel):
 # ---------------------------------------------------------------------------
 # CRUD helpers
 # ---------------------------------------------------------------------------
+
 
 def create(
     session: Session,
@@ -142,6 +148,7 @@ def delete(
 # Query helpers (sorted)
 # ---------------------------------------------------------------------------
 
+
 def _sort_key(dl: Deadline) -> tuple[date, time]:
     """Sort key: date ascending, then time ascending (None → end of day)."""
     time_val = dl.due_time if dl.due_time is not None else time(23, 59)
@@ -204,3 +211,83 @@ def past(
         .order_by(Deadline.due_date, Deadline.due_time)
     )
     return list(session.scalars(stmt).all())
+
+
+# ---------------------------------------------------------------------------
+# API response model (SPEC 3.5)
+# ---------------------------------------------------------------------------
+
+
+class DeadlineOut(BaseModel):
+    """Deadline output for the JSON API (SPEC 3.5)."""
+
+    id: int
+    title: str
+    due_date: date
+    due_time: time | None = None
+    note: str | None = None
+    source: str
+
+
+def _deadline_to_out(dl: Deadline) -> dict[str, Any]:
+    """Convert a Deadline ORM object to a JSON-serialisable dict."""
+    return {
+        "id": dl.id,
+        "title": dl.title,
+        "due_date": dl.due_date.isoformat(),
+        "due_time": dl.due_time.isoformat() if dl.due_time else None,
+        "note": dl.note,
+        "source": dl.source,
+    }
+
+
+# ---------------------------------------------------------------------------
+# API router (SPEC 3.5)
+# ---------------------------------------------------------------------------
+
+api_router = APIRouter(prefix="/api/v1/deadlines", tags=["deadlines"])
+
+
+@api_router.get("")
+def list_deadlines(
+    include_past: bool = Query(default=False),
+    _auth: None = Depends(require_team),
+) -> list[dict[str, Any]]:
+    """Upcoming deadlines, or all when include_past=true (SPEC 3.5)."""
+    from app.db import get_db
+
+    with next(get_db()) as session:
+        deadlines = past(session) + upcoming(session) if include_past else upcoming(session)
+        return [_deadline_to_out(dl) for dl in deadlines]
+
+
+@api_router.post("", status_code=status.HTTP_201_CREATED)
+def create_deadline(
+    data: DeadlineIn,
+    _auth: None = Depends(require_team),
+) -> dict[str, Any]:
+    """Create a deadline and return it (SPEC 3.5)."""
+    from app.db import get_db
+
+    with next(get_db()) as session:
+        deadline = create(session, data, now=_now_utc())
+        session.commit()
+        return _deadline_to_out(deadline)
+
+
+@api_router.delete("/{deadline_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_deadline(
+    deadline_id: int,
+    _auth: None = Depends(require_team),
+) -> None:
+    """Delete a deadline by id; 404 when not found (SPEC 3.5)."""
+    from app.db import get_db
+
+    with next(get_db()) as session:
+        found = delete(session, deadline_id)
+        if not found:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Deadline not found",
+            )
+        session.commit()
