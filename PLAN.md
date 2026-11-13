@@ -43,7 +43,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_page_settings.py -q
 
 ## Reminders (no LLM)
-- [ ] T16: `app/schedule.py` `due_posts` for the weekly overview (SPEC 6.1, 6.2, 6.5) per docs/teams.md §schedule. Write `tests/test_schedule_weekly.py` (Monday 08:29 not due, 08:30 due, 14:29 due, 14:31 not, Tuesday not, other weekday setting, summer and winter UTC offsets, ref_key `weekly:2026-W47`, disabled → nothing).
+- [x] T16: `app/schedule.py` `due_posts` for the weekly overview (SPEC 6.1, 6.2, 6.5) per docs/teams.md §schedule. Write `tests/test_schedule_weekly.py` (Monday 08:29 not due, 08:30 due, 14:29 due, 14:31 not, Tuesday not, other weekday setting, summer and winter UTC offsets, ref_key `weekly:2026-W47`, disabled → nothing).
   accept: cd backend && uv run pytest tests/test_schedule_weekly.py -q
 - [ ] T17: Deadline reminders in `due_posts` (SPEC 6.3). Write `tests/test_schedule_deadlines.py` (2 days, 1 day, `0` in days_before → "vandaag", a moved deadline gets a new ref_key, a deadline 3 days out is not due).
   accept: cd backend && uv run pytest tests/test_schedule_deadlines.py -q
