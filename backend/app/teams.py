@@ -4,17 +4,24 @@ SPEC 5.1–5.2: POST the envelope to TEAMS_WEBHOOK_URL with a 15 s timeout.
 Any 2xx is success.  429 / 5xx / network errors are retryable.
 All other 4xx are permanent (not retried).
 The JSON body is capped at 28 KB; longer text is cut and ends with "… (ingekort)".
+
+SPEC 5.3–5.4: send_once() — post-log logic.
 """
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import httpx
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from app.clock import now_utc
 from app.config import get_settings
+from app.models import PostLog
 
 _KB = 1024
 _MAX_BODY_KB = 28
@@ -143,3 +150,74 @@ def post_card(
     finally:
         if client is None:
             local_client.close()
+
+
+def send_once(
+    session: Session,
+    kind: str,
+    ref_key: str,
+    card: dict[str, Any],
+    *,
+    client: httpx.Client | None = None,
+    now: datetime | None = None,
+) -> str:
+    """Send a card once (SPEC 5.3–5.4).
+
+    - Skip if the row already has status ``sent``.
+    - If no webhook URL is configured → record ``dry_run``, return ``"dry_run"``.
+    - Skip retry if ``attempts >= 5`` or the last failure was ``permanent``.
+    - Otherwise POST, then record the result.
+
+    Returns the final status string.
+    """
+    existing = session.execute(
+        select(PostLog).where(PostLog.ref_key == ref_key)
+    ).scalar_one_or_none()
+
+    if existing is not None and existing.status == "sent":
+        return "sent"
+
+    settings = get_settings()
+    webhook_url = settings.TEAMS_WEBHOOK_URL
+
+    if existing is None:
+        row = PostLog(
+            kind=kind,
+            ref_key=ref_key,
+            status="failed",
+            attempts=0,
+            last_error=None,
+        )
+        session.add(row)
+        session.flush()
+    else:
+        row = existing
+
+    # No webhook → dry run (SPEC 5.3: recorded, not sent).
+    if not webhook_url:
+        row.status = "dry_run"
+        session.commit()
+        return "dry_run"
+
+    # Respect max attempts (SPEC 5.4).
+    if row.attempts >= 5:
+        return "skipped"
+
+    # Skip permanent failures (SPEC 5.4).
+    if row.status == "permanent":
+        return "skipped"
+
+    result = post_card(card, client=client)
+
+    if result.status == "ok":
+        row.status = "sent"
+        row.sent_at = now or now_utc()
+        session.commit()
+        return "sent"
+
+    # Failed / retryable / permanent
+    row.attempts += 1
+    row.last_error = result.error or ""
+    row.status = result.status
+    session.commit()
+    return result.status
