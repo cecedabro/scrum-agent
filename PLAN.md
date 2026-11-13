@@ -47,7 +47,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_schedule_weekly.py -q
 - [x] T17: Deadline reminders in `due_posts` (SPEC 6.3). Write `tests/test_schedule_deadlines.py` (2 days, 1 day, `0` in days_before → "vandaag", a moved deadline gets a new ref_key, a deadline 3 days out is not due).
   accept: cd backend && uv run pytest tests/test_schedule_deadlines.py -q
-- [ ] T18: Sprint nudge in `due_posts` (SPEC 6.4). Write `tests/test_schedule_sprint.py` (end dates from an anchor in the past and in the future, length 1 and 2 weeks, days_before 1, off by default, the deadlines listed stop at the end date).
+- [x] T18: Sprint nudge in `due_posts` (SPEC 6.4). Write `tests/test_schedule_sprint.py` (end dates from an anchor in the past and in the future, length 1 and 2 weeks, days_before 1, off by default, the deadlines listed stop at the end date).
   accept: cd backend && uv run pytest tests/test_schedule_sprint.py -q
 - [ ] T19: `app/tick.py` `run_tick` and `main` (SPEC 6.6) per docs/teams.md §tick. Write `tests/test_tick.py` (a Monday tick posts the overview once across two ticks, Teams 500 → exit 0 and retried on the next tick, unreachable database → `main()` returns 1).
   accept: cd backend && uv run pytest tests/test_tick.py -q
