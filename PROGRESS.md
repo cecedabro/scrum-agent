@@ -49,3 +49,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_deadlines_api.py` (20 tests): covers empty list, single deadline, multiple deadlines, `include_past` flag, sorting, 400 on invalid payload, 401 without auth, 404 on unknown id, 422 on bad data, 201 on valid create, 204 on delete, 200+204 after create, `list_deadlines` returns combined past+upcoming when `include_past=true`.
 - Gotcha: `get_db()` is a generator — must call `next(get_db())`, not `get_db()()`. Tests must commit after `create()` so separate API sessions can see the data. SQLAlchemy 2.x requires `scalars().all()` instead of deprecated `scalar_all()`.
 - All 139 tests pass, 95% coverage, `make check` exit 0.
+
+## T10
+- Implemented `/deadlines` page (GET list + POST add), `/deadlines/{id}/edit` (GET form + POST save), and `/deadlines/{id}/delete` (POST) in `app/web.py`. All routes use `POST/Redirect/GET`, validate input matching `DeadlineIn` rules, and return 404 for unknown IDs.
+- Created templates: `deadlines.html` (upcoming/past tables with edit links and delete forms), `edit.html` (pre-filled edit form). Delete confirmation handled by external `static/app.js` (CSP-compliant, no inline scripts).
+- Updated `base.html` to load `app.js`. Fixed typo "Nkomende" → "Komende" in deadlines template.
+- Created `backend/tests/test_page_deadlines_edit.py` (30 tests): covers page rendering, add/edit/delete CRUD, validation errors, 404s, input preservation on errors, redirects. All 169 tests pass, 97% coverage, `make check` exit 0.
+- Note: T09 (/deadlines page) was skipped and merged into this task. CSP forbids inline scripts, so delete confirmation uses `class="delete-form"` + `app.js`.
