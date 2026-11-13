@@ -3,6 +3,7 @@
 Order matters: DATABASE_URL is set before `app` is imported anywhere.
 """
 
+import base64
 import os
 from collections.abc import Iterator
 from pathlib import Path
@@ -80,3 +81,39 @@ def client(db: object) -> Iterator[object]:
 
     with TestClient(create_app()) as c:
         yield c
+
+
+@pytest.fixture()
+def auth_client(db: object) -> Iterator[object]:
+    """TestClient with valid Basic auth headers (TEAM_USER / TEAM_PASSWORD)."""
+    from fastapi.testclient import TestClient
+
+    from app.config import get_settings
+    from app.main import create_app
+
+    settings = get_settings()
+    encoded = base64.b64encode(f"{settings.TEAM_USER}:{settings.TEAM_PASSWORD}".encode()).decode()
+    headers = {"Authorization": f"Basic {encoded}"}
+
+    with TestClient(create_app(), headers=headers) as c:
+        yield c
+
+
+def _b64_credentials(user: str, password: str) -> str:
+    """Return ``Basic <base64>`` for the given user/password pair."""
+    encoded = base64.b64encode(f"{user}:{password}".encode()).decode()
+    return f"Basic {encoded}"
+
+
+def set_clock(clock_fn: object) -> None:
+    """Override the clock used by auth (for testing)."""
+    from app.auth import set_clock as _set_clock
+
+    _set_clock(clock_fn)
+
+
+def reset_login_state() -> None:
+    """Clear failed-login and rate-limit state."""
+    from app.auth import reset_login_state as _reset
+
+    _reset()
