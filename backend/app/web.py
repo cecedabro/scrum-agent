@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path as _Path
 
+import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -16,12 +17,13 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.auth import require_team
 from app.clock import today_local
-from app.config import TIMEZONE
+from app.config import TIMEZONE, get_settings
 from app.db import get_db
 from app.deadlines import DeadlineIn, create, past, upcoming, update
 from app.deadlines import delete as _delete_deadline
 from app.fmt import datum, datum_kort, relatief
 from app.models import Deadline
+from app.teams import get_teams_client
 
 # Jinja2 environment
 _templates_dir = _Path(__file__).resolve().parent / "templates"
@@ -246,3 +248,154 @@ async def deadlines_delete(
             raise HTTPException(status_code=404, detail="Deadline niet gevonden")
         session.commit()
     return RedirectResponse(url="/deadlines", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Settings page routes (SPEC 4.1-4.2)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/settings")
+async def settings_page(
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Display the settings form with webhook status."""
+    from app.settings import load
+
+    with next(get_db()) as session:
+        settings = load(session)
+
+    webhook_url = get_settings().TEAMS_WEBHOOK_URL
+    webhook_set = bool(webhook_url and webhook_url.strip())
+
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "page_title": "Instellingen",
+            "settings": settings,
+            "webhook_set": webhook_set,
+            "errors": {},
+            "test_result": None,
+        },
+    )
+
+
+@router.post("/settings")
+async def settings_save(
+    request: Request,
+    weekly_enabled: str = Form(default="off"),
+    weekly_weekday: str = Form(default="maandag"),
+    weekly_time: str = Form(default="08:30"),
+    deadline_reminder_enabled: str = Form(default="on"),
+    deadline_reminder_time: str = Form(default="09:00"),
+    deadline_reminder_days_before: str = Form(default="2,1"),
+    sprint_enabled: str = Form(default="off"),
+    sprint_end_date: str = Form(default=""),
+    sprint_length: str = Form(default="2"),
+    sprint_days_before: str = Form(default="1"),
+    sprint_time: str = Form(default="09:00"),
+    summary_auto_post: str = Form(default="on"),
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Save settings after validation."""
+    from app.settings import ReminderSettings, save, validate_settings
+
+    weekly_on = weekly_enabled.lower() in ("on", "true", "1", "yes")
+    deadline_on = deadline_reminder_enabled.lower() in ("on", "true", "1", "yes")
+    sprint_on = sprint_enabled.lower() in ("on", "true", "1", "yes")
+    summary_on = summary_auto_post.lower() in ("on", "true", "1", "yes")
+
+    s = ReminderSettings(
+        weekly_enabled=weekly_on,
+        weekly_weekday=weekly_weekday,
+        weekly_time=weekly_time,
+        deadline_reminder_enabled=deadline_on,
+        deadline_reminder_time=deadline_reminder_time,
+        weekdays_before=[],
+        sprint_enabled=sprint_on,
+        sprint_end_date=sprint_end_date,
+        sprint_length=int(sprint_length) if sprint_length.strip() else 2,
+        sprint_days_before=int(sprint_days_before) if sprint_days_before.strip() else 1,
+        sprint_time=sprint_time,
+        summary_auto_post=summary_on,
+    )
+
+    # Parse weekdays_before
+    days_str = deadline_reminder_days_before.strip()
+    if days_str:
+        try:
+            s.weekdays_before = [int(d.strip()) for d in days_str.split(",") if d.strip()]
+        except ValueError:
+            s.weekdays_before = []
+
+    with next(get_db()) as session:
+        errors = validate_settings(s)
+
+        if errors:
+            webhook_url = get_settings().TEAMS_WEBHOOK_URL
+            webhook_set = bool(webhook_url and webhook_url.strip())
+            return templates.TemplateResponse(
+                request,
+                "settings.html",
+                {
+                    "page_title": "Instellingen",
+                    "settings": s,
+                    "webhook_set": webhook_set,
+                    "errors": errors,
+                    "test_result": None,
+                },
+            )
+
+        save(session, s)
+        session.commit()
+
+    return RedirectResponse(url="/settings", status_code=303)
+
+
+@router.post("/settings/test")
+async def settings_test(
+    request: Request,
+    _auth: None = Depends(require_team),
+    client: httpx.Client | None = Depends(get_teams_client),
+) -> Response:
+    """Send a test card via Teams and show result status."""
+    import uuid
+
+    from app.cards import test_card
+    from app.settings import load
+    from app.teams import send_once
+
+    ref_key = f"test-{uuid.uuid4().hex[:12]}"
+
+    with next(get_db()) as session:
+        card = test_card()
+        status = send_once(session, "test", ref_key, card, client=client)
+
+        settings = load(session)
+
+    webhook_url = get_settings().TEAMS_WEBHOOK_URL
+    webhook_set = bool(webhook_url and webhook_url.strip())
+
+    status_labels = {
+        "sent": "Verzonden",
+        "dry_run": "Gedrydrun (geen webhook ingesteld)",
+        "skipped": "Overslagen",
+        "ok": "Ok",
+        "retryable": "Herhaalbaar (probeer opnieuw)",
+        "permanent": "Permanente fout",
+        "failed": "Mislukt",
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "page_title": "Instellingen",
+            "settings": settings,
+            "webhook_set": webhook_set,
+            "errors": {},
+            "test_result": status_labels.get(status, status),
+        },
+    )

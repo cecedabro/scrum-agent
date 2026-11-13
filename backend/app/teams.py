@@ -35,6 +35,11 @@ class PostResult:
     error: str | None = None
 
 
+def get_teams_client() -> httpx.Client | None:
+    """FastAPI dependency that provides an injectable HTTP client."""
+    return httpx.Client()
+
+
 def envelope(card: dict[str, Any]) -> dict[str, Any]:
     """Wrap a card in the Microsoft Teams message format."""
     return {

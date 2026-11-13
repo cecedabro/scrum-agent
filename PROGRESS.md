@@ -77,3 +77,13 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_settings_service.py` (27 tests): dataclass defaults match spec, defaults dict has all keys, validation rejects bad weekday/time/sprint_length/days_before with Dutch messages, empty-db load returns defaults, save creates 12 rows, full round-trip, update existing, partial load fills missing as defaults.
 - Gotcha: `_validate_sprint_length` returns `(ok: bool, value: int, error: str)` — second element is the validated int, not a bool. The unpacking in `validate_settings` was initially wrong (`_, sl_ok, sl_err` → `sl_ok, sl_val, sl_err`).
 - Total coverage: 97%, `make check` exit 0. Next task needs to wire `settings.py` into the tick and/or settings page.
+
+## T15
+- Added `GET /settings` route in `app/web.py`: loads settings via `load()`, checks webhook URL status via `get_settings().TEAMS_WEBHOOK_URL`, renders `settings.html` with `webhook_set` flag.
+- Added `POST /settings` route: parses form fields, maps checkboxes to bools, constructs `ReminderSettings`, validates via `validate_settings()`, saves via `save()` on success (303 redirect), returns 200 with errors dict on validation failure.
+- Added `POST /settings/test` route: calls `test_card()` + `send_once()` via injectable `client: httpx.Client | None = Depends(get_teams_client)`, maps `PostResult` status to Dutch labels, re-renders settings page with `test_result`.
+- Added `get_teams_client()` dependency in `app/teams.py`: returns `httpx.Client()` (or `None`); enables test injection via FastAPI `Depends()`.
+- Created `app/templates/settings.html`: form with fieldsets for weekly reminders, deadline reminders, sprint nudges, and summary auto-post; webhook status indicator; test button form; error and test result display sections.
+- Created `tests/test_page_settings.py` (16 tests): covers form rendering, field presence, weekday options, webhook status display, default values, auth requirement (401), valid save + redirect, DB persistence, full round-trip, invalid weekday/time/sprint length/sprint days before/deadline days before validation errors (Dutch messages), test endpoint renders result, test button form exists.
+- Gotcha: `POST /settings` renders 200 with errors on validation failure (not 422); `POST /settings/test` renders the settings page with `test_result` inline (not a redirect), so tests must assert on the POST response directly.
+- All 275 tests pass, 97% coverage, `make check` exit 0. Next task should wire settings into the cron tick (e.g., load schedule from DB).
