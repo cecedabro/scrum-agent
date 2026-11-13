@@ -12,11 +12,13 @@ is posted to the team's own Teams channel.
 | Uploaded transcript file | nowhere: parsed in memory, never written to disk | — |
 | Transcript text (speaker names + what they said) | Postgres, `job.transcript` | until the summary is made; a failed job's text 7 days |
 | Meeting summary (decisions, action items with names) | Postgres, `job.result` | 180 days (`SUMMARY_RETENTION_DAYS`) |
+| Questions to `@Agent` that need the model (question text and answer, no sender name) | Postgres, `job` with kind `question` | 30 days |
 | Post log (what was posted when; no message text) | Postgres | 180 days (`POST_LOG_RETENTION_DAYS`) |
 | Posts in Teams | Microsoft Teams (the school's tenant) | Teams' own rules; delete a post in Teams |
 
 The model (`coder`, llama-server on the PC) receives the transcript text while it makes a
-summary and keeps nothing afterwards. App logs contain no transcript text, summaries,
+summary, or a question with the deadlines and the last 3 summaries while it answers it, and
+keeps nothing afterwards. Simple questions (deadlines, sprint, help) never reach the model. App logs contain no transcript text, summaries,
 passwords or the webhook URL; the cluster keeps logs only as long as the pods exist.
 
 ## Who can see it

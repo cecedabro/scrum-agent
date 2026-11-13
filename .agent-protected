@@ -6,3 +6,4 @@ docs/                                # area docs: the human's instructions to th
 .github/workflows/image.yml          # human-owned image smoke test
 scripts/store-secrets.sh             # human-run secret setup
 backend/app/static/vendor/           # vendored by hand
+backend/tests/test_page_deadlines.py     # written by hand for T09

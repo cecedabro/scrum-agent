@@ -63,3 +63,30 @@ retention (docs/privacy.md), and log one line per post (kind, ref_key, status). 
 One pydantic model `ReminderSettings` with the SPEC 4.1 defaults, stored as JSON in
 `app_setting` under key `reminders`. `load(session)` returns defaults when nothing is
 stored; `save(session, data)` validates first and stores nothing on error.
+
+## Questions from Teams (`@Agent`, SPEC 10)
+A team owner adds an **outgoing webhook** (team ⋯ → Manage team → Apps → "Create an outgoing
+webhook"), name "Agent", callback `https://scrum.cedricschippers.dev/teams/outgoing`. Teams
+shows a security token once; that is `TEAMS_HMAC_SECRET` (base64). Teams then POSTs a JSON
+activity for every `@Agent` message in that team's standard channels. Fields we use: `text`
+only (HTML, e.g. `<at>Agent</at> wat zijn de deadlines?`). Ignore `from` (names are not
+stored).
+
+Verify before parsing:
+```python
+expected = base64.b64encode(hmac.new(base64.b64decode(secret), body, hashlib.sha256).digest())
+ok = hmac.compare_digest(expected, header.removeprefix("HMAC ").encode())
+```
+`body` is the exact raw request bytes (`await request.body()`), not re-serialised JSON.
+
+The reply must arrive within 5 s, so the route only reads the DB: quick answers
+(`answers.py`, pure functions) or a queued `question` job. Reply body:
+`{"type": "message", "text": "**Deadlines**\n\n- ma 16 nov 23:59 — Sprint review (morgen)"}`.
+Teams renders a small Markdown subset (bold, lists, line breaks); keep replies short.
+
+The model's answer comes later through the normal Workflows webhook (`send_once`,
+`question:<id>`) as a new post in the channel, not in the thread: an outgoing webhook can
+only answer synchronously.
+
+Tests sign bodies with a test secret, e.g. `base64.b64encode(b"test-secret-32-bytes-long......")`,
+and set it with `monkeypatch.setenv("TEAMS_HMAC_SECRET", ...)` + `get_settings.cache_clear()`.

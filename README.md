@@ -40,7 +40,18 @@ copied from the devbox secret) and `secret/scrum-agent/db`. Later, to replace on
 webhook: `scripts/store-secrets.sh webhook`. Share the team password with teammates in a
 private Teams chat, not in the channel.
 
-### 3. Cluster and hostname (after the `deploy/` tasks are done)
+### 3. `@Agent` in Teams (phase 3, after T42 and once the site is online)
+A team owner: team **⋯ → Manage team → Apps → "Create an outgoing webhook"**. Name `Agent`,
+callback URL `https://scrum.cedricschippers.dev/teams/outgoing`. Teams shows a security token
+once: don't paste it anywhere except here:
+```bash
+scripts/store-secrets.sh hmac
+```
+Then `@Agent wat zijn de deadlines?` in a channel of that team. If you put Cloudflare Access
+in front of the site, add a bypass for the path `/teams/outgoing` (Teams can't log in; the
+HMAC check protects that path).
+
+### 4. Cluster and hostname (after the `deploy/` tasks are done)
 The homelab chat copies `deploy/` into `~/homelab/apps/scrum-agent/` and adds the
 ExternalSecrets and the NetworkPolicy. Then add `scrum.cedricschippers.dev` → Service
 `scrum-agent.scrum-agent:80` in the Cloudflare tunnel. Optional extra lock: a Cloudflare

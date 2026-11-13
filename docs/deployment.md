@@ -27,7 +27,7 @@ the devbox; `.github/workflows/image.yml` builds and smoke-tests it.
 | Web | Deployment `scrum-agent`, 1 replica, `Recreate`, port 8000, Service `scrum-agent` port 80, liveness `/healthz`, readiness `/readyz` |
 | Worker | Deployment `scrum-agent-worker`, 1 replica, `Recreate`, `command: ["python", "-m", "app.worker"]`, no Service, no probes |
 | Tick | CronJob `scrum-agent-tick`, `*/10 * * * *`, `timeZone: Europe/Amsterdam`, `concurrencyPolicy: Forbid`, `startingDeadlineSeconds: 300`, `backoffLimit: 0`, keep 3 successful / 3 failed jobs |
-| Env (Secret `scrum-agent-app`) | `DATABASE_URL`, `TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, `LLM_API_KEY` (all three workloads use `envFrom`) |
+| Env (Secret `scrum-agent-app`) | `DATABASE_URL`, `TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, `LLM_API_KEY`, `TEAMS_HMAC_SECRET` (all three workloads use `envFrom`) |
 | Env (plain) | `APP_ENV=production`, `LLM_BASE_URL=http://192.168.50.17:8080/v1`, `TEAM_USER=team` |
 | DB | StatefulSet `scrum-agent-db`, `postgres:16.10`, Secret `scrum-agent-db` (`POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`), `PGDATA=/var/lib/postgresql/data/pgdata`, Service `scrum-agent-db:5432`, 2Gi `longhorn` PVC, fsGroup 999 |
 | Resources | web 25m/128Mi request, 256Mi limit; worker 10m/96Mi, 192Mi; tick 10m/96Mi, 192Mi; Postgres 50m/256Mi, 512Mi |
