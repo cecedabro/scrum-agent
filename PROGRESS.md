@@ -68,3 +68,12 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `app/teams.py` with `envelope(card)` (wraps card in Teams message format), `_cap_body()` (recursive 28 KB JSON cap truncating TextBlocks with "… (ingekort)"), and `post_card(card, client=...)` (POSTs to webhook with 15 s timeout, classifies 2xx=ok, 429/5xx/network=retryable, other 4xx=permanent, exceptions mapped to retryable/permanent).
 - Created `tests/test_teams_post.py` (18 tests): exact envelope shape, HTTP 200/202/429/503/400/401, timeout and connection-refused retryable, 40 KB→28 KB truncation, JSON wire capture, URL never leaked in errors, empty webhook URL short-circuits to ok.
 - All 216 tests pass, 97% coverage, `make check` exit 0. Next task T13 needs to wire `post_card` into a cron tick function that inserts `PostLog` rows and retries failures.
+
+## T14
+- Created `backend/app/settings.py` with `ReminderSettings` dataclass (all SPEC 4.1 defaults), `validate_settings()` (returns Dutch error list for invalid weekday/time/sprint_length(1-4)/days_before(1-14)), `_validate_time()`, `_validate_days_before()`, `_validate_sprint_length()` helpers.
+- Created `load(db)` and `save(db, settings)` functions for the `app_setting` key-value table: `load` reads rows and falls back to `_DEFAULTS` dict; `save` upserts all 12 keys (existing rows updated in-place, new rows added).
+- Added `AppSetting` model to `backend/app/models.py`: `id`, `key` (varchar 100, unique), `value` (text, default ""), `updated_at` (timestamptz).
+- Created Alembic migration `backend/alembic/versions/0004_app_setting.py` (upgrade adds table, downgrade drops it).
+- Created `backend/tests/test_settings_service.py` (27 tests): dataclass defaults match spec, defaults dict has all keys, validation rejects bad weekday/time/sprint_length/days_before with Dutch messages, empty-db load returns defaults, save creates 12 rows, full round-trip, update existing, partial load fills missing as defaults.
+- Gotcha: `_validate_sprint_length` returns `(ok: bool, value: int, error: str)` — second element is the validated int, not a bool. The unpacking in `validate_settings` was initially wrong (`_, sl_ok, sl_err` → `sl_ok, sl_val, sl_err`).
+- Total coverage: 97%, `make check` exit 0. Next task needs to wire `settings.py` into the tick and/or settings page.

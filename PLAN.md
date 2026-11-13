@@ -37,7 +37,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_post_log.py -q
 
 ## Settings
-- [ ] T14: `AppSetting` model + migration `0004_app_setting`, and `app/settings.py` `ReminderSettings` (SPEC 4.1 defaults, 4.2 validation), `load`, `save`. Write `tests/test_settings_service.py` (defaults when empty, round trip, each invalid value rejected and nothing stored).
+- [x] T14: `AppSetting` model + migration `0004_app_setting`, and `app/settings.py` `ReminderSettings` (SPEC 4.1 defaults, 4.2 validation), `load`, `save`. Write `tests/test_settings_service.py` (defaults when empty, round trip, each invalid value rejected and nothing stored).
   accept: cd backend && uv run pytest tests/test_settings_service.py -q
 - [ ] T15: `/settings` page (SPEC 4): the form, 422 with Dutch errors, "Webhook ingesteld: ja/nee" (never the URL), and `POST /settings/test` sending `test_card()` through `send_once` with a unique ref_key and showing the status. Make the Teams client injectable through a dependency. Write `tests/test_page_settings.py`.
   accept: cd backend && uv run pytest tests/test_page_settings.py -q
