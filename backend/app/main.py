@@ -6,15 +6,15 @@ import logging
 import re
 from collections.abc import Awaitable, Callable
 
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from app.auth import require_team
 from app.config import check_production, get_settings
 from app.db import get_engine
 from app.paths import STATIC_DIR
+from app.web import router as web_router
 
 # Security headers (SPEC 2.4)
 _SECURITY_HEADERS = {
@@ -77,6 +77,8 @@ def create_app() -> FastAPI:
             response.headers[header] = value
         return response
 
+    app.include_router(web_router)
+
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
@@ -89,10 +91,6 @@ def create_app() -> FastAPI:
         except Exception:
             return JSONResponse(status_code=503, content={"status": "unavailable"})
         return {"status": "ready"}
-
-    @app.get("/")
-    def index(_dep: None = Depends(require_team)) -> str:
-        return "Scrum agent"
 
     return app
 

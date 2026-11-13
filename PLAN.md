@@ -13,7 +13,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_auth.py -q
 - [x] T04: Security middleware (SPEC 2.3, 2.4): the headers on every response, and the CSRF guard returning 403 for unsafe methods when `Sec-Fetch-Site: cross-site` or the `Origin` host differs from `Host`. Write `tests/test_security.py` (headers on /healthz and /, cross-site POST 403, same-origin POST passes the guard, missing Origin passes).
   accept: cd backend && uv run pytest tests/test_security.py -q
-- [ ] T05: Base layout: `templates/base.html` (Dutch, nav per docs/frontend.md with `aria-current`, `<main>`, `<footer>`), `static/app.css`, a Jinja setup in `app/web.py` with the fmt filters registered, and `/` rendering an "Overzicht" page with an empty state. Write `tests/test_base_template.py` (nav links, `aria-current` on `/`, lang="nl", htmx loaded from /static/vendor, no inline `<script>` in any template file).
+- [x] T05: Base layout: `templates/base.html` (Dutch, nav per docs/frontend.md with `aria-current`, `<main>`, `<footer>`), `static/app.css`, a Jinja setup in `app/web.py` with the fmt filters registered, and `/` rendering an "Overzicht" page with an empty state. Write `tests/test_base_template.py` (nav links, `aria-current` on `/`, lang="nl", htmx loaded from /static/vendor, no inline `<script>` in any template file).
   accept: cd backend && uv run pytest tests/test_base_template.py -q
 
 ## Deadlines
