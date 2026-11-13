@@ -1,0 +1,24 @@
+.git
+.agent
+.venv
+.venvs
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.devdb
+__pycache__
+tests
+node_modules
+*.pyc
+*.egg-info
+dist
+build
+# Same again below the root (backend/.venv from local dev would overwrite the image's venv).
+**/.venv
+**/.devdb
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.DS_Store
+backend/tests

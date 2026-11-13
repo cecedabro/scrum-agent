@@ -1,0 +1,8 @@
+# Paths the coding agent may not change, on top of agent-loop's defaults
+# (tests/, contract/, PLAN.md, SPEC.md, AGENTS.md). This file protects itself.
+docs/                                # area docs: the human's instructions to the agent
+.github/workflows/ci.yml             # human-owned CI gate
+.github/workflows/migrations.yml     # human-owned migration check
+.github/workflows/image.yml          # human-owned image smoke test
+scripts/store-secrets.sh             # human-run secret setup
+backend/app/static/vendor/           # vendored by hand

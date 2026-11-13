@@ -1,0 +1,34 @@
+# Human-owned CI gate (SPEC 9.1): the agent may not edit this file.
+# agent-loop waits for these runs on agent/** branches and turns failures into fix tasks.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, "agent/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: kustomize and kubeconform (for deploy/)
+        if: hashFiles('deploy/Makefile') != ''
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz | tar -xz -C "$HOME/.local/bin" kustomize
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar -xz -C "$HOME/.local/bin" kubeconform
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: make setup
+      - run: make check
+      - name: Lint the Dockerfile
+        run: uvx --from hadolint-py hadolint --failure-threshold warning Dockerfile

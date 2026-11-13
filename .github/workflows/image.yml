@@ -1,0 +1,41 @@
+# Human-owned image smoke test (SPEC 9.2): the agent may not edit this file.
+# The devbox has no Docker, so the image is only ever built and started here.
+name: image
+
+on:
+  pull_request:
+  push:
+    branches: ["agent/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16.10
+        env:
+          POSTGRES_USER: smoke
+          POSTGRES_PASSWORD: smoke
+          POSTGRES_DB: smoke
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U smoke"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: scrum-agent:smoke
+      - name: Smoke test
+        env:
+          IMAGE: scrum-agent:smoke
+          DB_URL: postgresql+psycopg://smoke:smoke@127.0.0.1:5432/smoke
+        run: bash tests/ci/smoke-image.sh

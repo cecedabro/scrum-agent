@@ -1,0 +1,12 @@
+.agent/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+.coverage
+.env
+.DS_Store
+._*
+backend/.devdb/
