@@ -95,3 +95,8 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Fixed `_local_now` test helper: changed from naive datetime to UTC-aware via `ZoneInfo("Europe/Amsterdam")` + `astimezone(timezone.utc)` to match `_in_window` comparison expectations.
 - Removed `("weekdays_before", [0])` from invalid values param in `test_settings_service.py` since `0` is now valid.
 - Gotcha: `_local_now` returns `datetime` (not `date`), so `date_val.day` was wrong — `date_val` is already a day integer. The `from __future__ import annotations` at top of test file means type hints are strings; don't evaluate them at import time.
+
+## T20
+- Created `backend/app/transcripts.py`: `Turn` dataclass, `TranscriptError`, `_strip_tags()`, `_CUE_ID_RE`, `parse_vtt(content) -> list[Turn]`, `as_text(turns) -> str`. Parses WebVTT: splits cue blocks on blank lines, skips `WEBVTT` header + IDs + `-->` timing, extracts `<v Name>` speakers (default "Onbekend"), strips all markup tags, merges consecutive same-speaker cues.
+- Created `backend/tests/test_transcripts_vtt.py` (20 tests): sample fixture assertions (11 turns, 4 speakers, first "Sanne Bakker"), multi-line cue joining, no `<v`/`-->` in output, edge cases (no `<v>` tag → "Onbekend", empty file → TranscriptError, consecutive same-speaker merge, alternating speakers), `as_text()` formatting. Fixture loaded via `Path("../tests/fixtures/sample.vtt").read_text()` since tests run from `backend/` directory.
+- All 350 tests pass, 95% coverage, `make check` exit 0. Next task needs the worker (`app/worker.py`) to call `parse_vtt()` on uploaded transcript content and send results to the LLM.

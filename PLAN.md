@@ -53,7 +53,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_tick.py -q
 
 ## Meeting summaries
-- [ ] T20: `app/transcripts.py` `parse_vtt`, `as_text` (SPEC 7.2) per docs/summaries.md. Write `tests/test_transcripts_vtt.py` against `tests/fixtures/sample.vtt` (11 turns, 4 speakers, first "Sanne Bakker", the split cue joined, no `<v` or `-->` left) plus inline edge cases (no `<v>`, empty file → `TranscriptError`).
+- [x] T20: `app/transcripts.py` `parse_vtt`, `as_text` (SPEC 7.2) per docs/summaries.md. Write `tests/test_transcripts_vtt.py` against `tests/fixtures/sample.vtt` (11 turns, 4 speakers, first "Sanne Bakker", the split cue joined, no `<v` or `-->` left) plus inline edge cases (no `<v>`, empty file → `TranscriptError`).
   accept: cd backend && uv run pytest tests/test_transcripts_vtt.py -q
 - [ ] T21: `parse_docx` (SPEC 7.2) with zipfile + defusedxml and the size guard. Write `tests/test_transcripts_docx.py` against `tests/fixtures/sample.docx` (same 11 turns as the VTT) plus a non-zip, a zip without `word/document.xml`, and an oversized entry built in `tmp_path`.
   accept: cd backend && uv run pytest tests/test_transcripts_docx.py -q
