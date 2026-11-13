@@ -35,3 +35,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created migration `backend/alembic/versions/0002_deadline.py`: adds the `deadline` table with PostgreSQL-compatible types, `server_default='manual'` for source, `server_default=now()` for timestamps. Downgrade drops the table.
 - Created `tests/test_models_deadline.py` (11 tests): table existence, insert minimal, insert with time+note, external_ref, source DB default check, source override, timestamps set on insert, updated_at changes on update, column names match model, timestamps are UTC-aware, title max length.
 - 96% total coverage, `make check` exit 0. Next task T07 needs service functions in `app/deadlines.py`.
+
+## T07
+- Created `backend/app/deadlines.py`: Pydantic `DeadlineIn` model with SPEC 3.1 validation (title 1-200 chars, note ≤1000, source `manual`/`github`, Dutch error messages). Service functions: `create(session, data, now)`, `update(session, id, data, now)`, `delete(session, id)`, `upcoming(session, today, now)` (today+future, sorted), `between(session, start, end, now)` (inclusive both ends, sorted), `past(session, today, now)` (before today, sorted). Sorting: date ascending, time ascending (None → end of day via `time(23,59)`).
+- Created `backend/tests/test_deadlines_service.py` (23 tests): 200 vs 201 chars, empty title with Dutch message, bad time rejection, valid time acceptance, note length, invalid source, create minimal/all fields, update existing/nonexistent, delete existing/nonexistent, sorting by date+time, no-time=end-of-day sorting, between inclusive both ends, upcoming excludes past, past excludes today.
+- Coverage: deadlines.py 92%, total 95% (≥90% met). All 119 tests pass, `make check` exit 0.
+- Note: `now` parameter accepted by all service functions for testability; defaults to `clock.now_utc()`. The `_sort_key` helper is private and not exported. Routes/API layer for deadlines is T08+.

@@ -19,7 +19,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
 ## Deadlines
 - [x] T06: `Deadline` model per docs/backend.md §Data model and migration `0002_deadline`. Write `tests/test_models_deadline.py` (insert with and without time/note, `source` defaults to `manual`, timestamps set).
   accept: cd backend && uv run pytest tests/test_models_deadline.py -q
-- [ ] T07: Service functions in `app/deadlines.py`: a pydantic `DeadlineIn` with SPEC 3.1 validation and Dutch error messages, `create`, `update`, `delete`, `upcoming(session, today)`, `between(session, start, end)`, `past(session, today)`, sorted by date then time (no time = end of day). Write `tests/test_deadlines_service.py` (200 vs 201 chars, empty title, bad time, sorting, `between` inclusive on both ends).
+- [x] T07: Service functions in `app/deadlines.py`: a pydantic `DeadlineIn` with SPEC 3.1 validation and Dutch error messages, `create`, `update`, `delete`, `upcoming(session, today)`, `between(session, start, end)`, `past(session, today)`, sorted by date then time (no time = end of day). Write `tests/test_deadlines_service.py` (200 vs 201 chars, empty title, bad time, sorting, `between` inclusive on both ends).
   accept: cd backend && uv run pytest tests/test_deadlines_service.py -q
 - [ ] T08: JSON API per SPEC 3.5 (`GET`/`POST /api/v1/deadlines`, `DELETE /api/v1/deadlines/{id}`), behind auth. Write `tests/test_deadlines_api.py` (field names and formats, `include_past`, 201, 422 stores nothing, 204, 404).
   accept: cd backend && uv run pytest tests/test_deadlines_api.py -q
