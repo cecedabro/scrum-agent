@@ -100,3 +100,12 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/app/transcripts.py`: `Turn` dataclass, `TranscriptError`, `_strip_tags()`, `_CUE_ID_RE`, `parse_vtt(content) -> list[Turn]`, `as_text(turns) -> str`. Parses WebVTT: splits cue blocks on blank lines, skips `WEBVTT` header + IDs + `-->` timing, extracts `<v Name>` speakers (default "Onbekend"), strips all markup tags, merges consecutive same-speaker cues.
 - Created `backend/tests/test_transcripts_vtt.py` (20 tests): sample fixture assertions (11 turns, 4 speakers, first "Sanne Bakker"), multi-line cue joining, no `<v`/`-->` in output, edge cases (no `<v>` tag → "Onbekend", empty file → TranscriptError, consecutive same-speaker merge, alternating speakers), `as_text()` formatting. Fixture loaded via `Path("../tests/fixtures/sample.vtt").read_text()` since tests run from `backend/` directory.
 - All 350 tests pass, 95% coverage, `make check` exit 0. Next task needs the worker (`app/worker.py`) to call `parse_vtt()` on uploaded transcript content and send results to the LLM.
+
+## T21
+- Implemented `parse_docx(data: bytes) -> list[Turn]` in `backend/app/transcripts.py` (SPEC 7.2): opens DOCX as zip, reads `word/document.xml` with `defusedxml`, extracts paragraph text via `w:p`/`w:t` XML elements, identifies speaker lines using `^(?P<speaker>.+?)\s+(\d+:)?\d{1,2}:\d{2}$`, joins multi-paragraph cues under the same speaker, skips header date lines where speaker name starts with a digit. Size guard at 20 MB (`_MAX_DOCX_SIZE`).
+- Renamed VTT `_SPEAKER_RE` to `_VTT_SPEAKER_RE` to avoid variable collision with the new DOCX regex.
+- Added `# type: ignore[import-untyped]` to `from defusedxml import ElementTree`.
+- Replaced `%` string formatting in namespace lookups with f-strings to satisfy ruff UP031.
+- Added `from err` to the `zipfile.BadZipFile` exception handler per ruff B904.
+- Created `backend/tests/test_transcripts_docx.py` (13 tests): sample fixture assertions (11 turns, 4 speakers, first "Sanne Bakker", specific text content), empty bytes, non-zip bytes, zip without `word/document.xml`, oversized `document.xml` (21 MB built in `tmp_path`), no speaker lines → `TranscriptError`, single speaker single turn round-trip.
+- All 363 tests pass, 95% coverage, `make check` exit 0. Next task should implement the worker (`app/worker.py`) that calls `parse_docx()` on uploaded transcript attachments and dispatches to the local LLM.
