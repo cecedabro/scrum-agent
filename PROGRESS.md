@@ -29,3 +29,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_base_template.py` (15 tests): covers nav links, labels, `aria-current`, `lang="nl"`, HTMX vendor path, inline script check, semantic structure, overview title, empty state, security headers, static file serving.
 - All 85 tests pass, 95% coverage, `make check` exit 0.
 - Note: `deadlines` and `meeting_jobs` are hard-coded empty here; T06+ will wire DB queries and job tables.
+
+## T06
+- Added `Deadline` model to `backend/app/models.py`: columns `id`, `title` (varchar 200), `due_date` (date, not null), `due_time` (time, nullable), `note` (text, nullable), `source` (varchar 20, default 'manual'), `external_ref` (varchar 500, nullable), `created_at`/`updated_at` (timestamptz, not null) with `now_utc()` defaults.
+- Created migration `backend/alembic/versions/0002_deadline.py`: adds the `deadline` table with PostgreSQL-compatible types, `server_default='manual'` for source, `server_default=now()` for timestamps. Downgrade drops the table.
+- Created `tests/test_models_deadline.py` (11 tests): table existence, insert minimal, insert with time+note, external_ref, source DB default check, source override, timestamps set on insert, updated_at changes on update, column names match model, timestamps are UTC-aware, title max length.
+- 96% total coverage, `make check` exit 0. Next task T07 needs service functions in `app/deadlines.py`.
