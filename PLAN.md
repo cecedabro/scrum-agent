@@ -61,7 +61,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_models_job.py -q
 - [~] T23: `/meetings` upload (SPEC 7.1): form, size limit, `.vtt`/`.docx` only, 422 with Dutch errors, creates a `queued` job with the `as_text` transcript, never writes the file to disk. Write `tests/test_page_meetings_upload.py` (both samples accepted, `.txt` refused, `MAX_UPLOAD_BYTES + 1` refused, empty VTT refused, rows counted). — skipped: $ cd backend && uv run pytest tests/test_page_meetings_upload.py -q  (exit 4)
   accept: cd backend && uv run pytest tests/test_page_meetings_upload.py -q
-- [ ] T24: Job list (SPEC 7.3): Dutch status labels, model state from `app_state`, `/meetings/partial`, polling attribute only while a job is queued or running. Write `tests/test_page_meetings_status.py`.
+- [~] T24: Job list (SPEC 7.3): Dutch status labels, model state from `app_state`, `/meetings/partial`, polling attribute only while a job is queued or running. Write `tests/test_page_meetings_status.py`. — skipped: $ make check  (exit 2)
   accept: cd backend && uv run pytest tests/test_page_meetings_status.py -q
 - [ ] T25: `app/llm.py` `is_up` and `chat_json` per docs/summaries.md §LLM client (SPEC 7.5). Write `tests/test_llm.py` with MockTransport (request body has model, `chat_template_kwargs.enable_thinking == false`, `response_format.type == "json_schema"`, bearer header; 200 up / connect error down; bad JSON and wrong shape → `LlmError`).
   accept: cd backend && uv run pytest tests/test_llm.py -q
