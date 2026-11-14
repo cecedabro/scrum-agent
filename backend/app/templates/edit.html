@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Deadline bewerken — Scrum agent{% endblock %}
+{% block content %}
+<h1>Deadline bewerken</h1>
+
+<form method="post" action="/deadlines/{{ deadline.id }}/edit">
+    <label for="title">Titel (1–200 tekens):</label>
+    <input type="text" id="title" name="title" value="{{ form_title or deadline.title }}" required>
+    {% if errors and errors.get('title') %}<span class="error">{{ errors.title }}</span>{% endif %}
+
+    <label for="due_date">Vervaldatum:</label>
+    <input type="date" id="due_date" name="due_date" value="{{ form_due_date or deadline.due_date.isoformat() }}" required>
+    {% if errors and errors.get('due_date') %}<span class="error">{{ errors.due_date }}</span>{% endif %}
+
+    <label for="due_time">Vervaltijd (optioneel, HH:MM):</label>
+    <input type="time" id="due_time" name="due_time" value="{{ form_due_time or (deadline.due_time.strftime('%H:%M') if deadline.due_time else '') }}">
+    {% if errors and errors.get('due_time') %}<span class="error">{{ errors.due_time }}</span>{% endif %}
+
+    <label for="note">Notitie (optioneel, max 1000 tekens):</label>
+    <textarea id="note" name="note" rows="3">{{ form_note or deadline.note or '' }}</textarea>
+    {% if errors and errors.get('note') %}<span class="error">{{ errors.note }}</span>{% endif %}
+
+    <button type="submit">Opslaan</button>
+    <a href="/deadlines">Annuleren</a>
+</form>
+{% endblock %}

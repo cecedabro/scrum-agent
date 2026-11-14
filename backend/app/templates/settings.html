@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="settings">
+    <div class="status-indicator">
+        <p>Webhook ingesteld: {{ "ja" if webhook_set else "nee" }}</p>
+    </div>
+
+    <form method="post" action="/settings">
+        <fieldset>
+            <legend>Wekelijkse overviews</legend>
+            <label>
+                <input type="checkbox" name="weekly_enabled" {% if settings.weekly_enabled %}checked{% endif %}>
+                Inschakelen
+            </label>
+            <label>
+                Dag van de week
+                <select name="weekly_weekday">
+                    {% for day in ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"] %}
+                    <option value="{{ day }}" {% if settings.weekly_weekday == day %}selected{% endif %}>{{ day|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Tijd
+                <input type="time" name="weekly_time" value="{{ settings.weekly_time }}">
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Deadline herinneringen</legend>
+            <label>
+                <input type="checkbox" name="deadline_reminder_enabled" {% if settings.deadline_reminder_enabled %}checked{% endif %}>
+                Inschakelen
+            </label>
+            <label>
+                Tijd
+                <input type="time" name="deadline_reminder_time" value="{{ settings.deadline_reminder_time }}">
+            </label>
+            <label>
+                Dagen vooraf (kommascheiden, bijv. 2,1)
+                <input type="text" name="deadline_reminder_days_before" value="{{ settings.weekdays_before|join(',') }}" placeholder="2,1">
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Sprint nudges</legend>
+            <label>
+                <input type="checkbox" name="sprint_enabled" {% if settings.sprint_enabled %}checked{% endif %}>
+                Inschakelen
+            </label>
+            <label>
+                Einddatum sprint
+                <input type="text" name="sprint_end_date" value="{{ settings.sprint_end_date }}" placeholder="YYYY-MM-DD">
+            </label>
+            <label>
+                Sprint lengte (1-4 weken)
+                <input type="number" name="sprint_length" value="{{ settings.sprint_length }}" min="1" max="4">
+            </label>
+            <label>
+                Dagen vooraf (1-14)
+                <input type="number" name="sprint_days_before" value="{{ settings.sprint_days_before }}" min="1" max="14">
+            </label>
+            <label>
+                Tijd
+                <input type="time" name="sprint_time" value="{{ settings.sprint_time }}">
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Samenvattingen</legend>
+            <label>
+                <input type="checkbox" name="summary_auto_post" {% if settings.summary_auto_post %}checked{% endif %}>
+                Automatisch posten in Teams
+            </label>
+        </fieldset>
+
+        <button type="submit">Opslaan</button>
+    </form>
+
+    {% if errors %}
+    <div class="error">
+        <h3>Validatiefouten:</h3>
+        <ul>
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/settings/test">
+        <button type="submit">Testbericht verzenden</button>
+    </form>
+
+    {% if test_result %}
+    <div class="test-result">
+        <p>Status: {{ test_result }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
