@@ -233,3 +233,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_dev_seed.py` (11 tests): verifies deadline count, dates, sources, job result JSON, and seed idempotency via truncation. Tests depend on `db` fixture for session-scoped isolation.
 - Fixed `_seed()` to use SQLAlchemy 2.0 `table()`/`column()` instead of `text()` for DML, and `json.dumps()` for PostgreSQL JSON columns.
 - All 592 tests pass, 94% coverage, `make check` exit 0.
+
+## T41
+- Created `backend/scripts/next_version.py`: stdlib-only script that computes the next semver version. Takes optional `tags` and `commit_messages` parameters for testability; defaults to querying git via `subprocess`. Returns `v0.1.0` when no semver tags exist, bumps patch by default, `[minor]` resets patch, `[major]` resets minor+patch. Non-semver tags are ignored.
+- Created `backend/tests/test_next_version.py` (9 tests): no tags → v0.1.0, non-semver tags ignored, patch bump, minor bump, major bump, major precedence over minor, latest semver tag selection, mixed tags with valid semver, major reset of minor+patch.
+- Gotcha: Bandit S603/S607 warnings on subprocess calls require `# noqa` comments — one per line matching the existing pattern (`# noqa: S603` on `subprocess.run`, `# noqa: S607` on the array argument).
+- All 601 tests pass, 94% coverage, `make check` exit 0.
