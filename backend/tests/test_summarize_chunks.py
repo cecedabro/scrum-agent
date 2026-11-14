@@ -31,6 +31,7 @@ def set_chunk_size(monkeypatch: pytest.MonkeyPatch) -> None:
     """Force a small ``SUMMARY_CHUNK_CHARS`` for all tests in this file."""
     monkeypatch.setenv("SUMMARY_CHUNK_CHARS", "100")
     from app.config import get_settings
+
     get_settings.cache_clear()
 
 
@@ -109,6 +110,7 @@ def test_no_part_over_chunk_limit() -> None:
     transcript = _build_transcript(turns)
 
     from app.config import get_settings
+
     max_chars = get_settings().SUMMARY_CHUNK_CHARS
     call_num = 0
 
@@ -120,8 +122,7 @@ def test_no_part_over_chunk_limit() -> None:
         # Only the first 3 calls are chunk summaries (not the merge call)
         if call_num <= 3:
             assert len(user_text) <= max_chars, (
-                f"Part {call_num} is {len(user_text)} "
-                f"chars, limit is {max_chars}"
+                f"Part {call_num} is {len(user_text)} chars, limit is {max_chars}"
             )
         return httpx.Response(
             200,
@@ -180,9 +181,7 @@ def test_no_turn_split_across_chunks() -> None:
         lines = chunk.split("\n")
         assert len(lines) >= 1, f"Chunk {i} has no lines"
         for line in lines:
-            assert ": " in line, (
-                f"Chunk {i} has a line without 'Speaker: text' pattern: {line!r}"
-            )
+            assert ": " in line, f"Chunk {i} has a line without 'Speaker: text' pattern: {line!r}"
 
 
 # ── merge call receives partial results ──────────────────────────────

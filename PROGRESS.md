@@ -191,3 +191,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_summary_autopost.py` (6 tests): ON → posted once + posted_at set + PostLog "sent"; ON → idempotent (second run returns idle, only 1 PostLog); OFF → nothing posted, no PostLog; retryable failure (503) → done + posted_at None + PostLog "retryable"; permanent failure (401) → done + posted_at None + PostLog "permanent"; connection exception → done + posted_at None.
 - Gotcha: `app.teams.get_settings()` uses `@lru_cache`; test fixture clears the cache via `get_settings.cache_clear()` and sets `TEAMS_WEBHOOK_URL` via `monkeypatch.setenv` so `send_once` proceeds with the mock HTTP client instead of returning "dry_run".
 - All 506 tests pass, >94% coverage, `make check` exit 0.
+
+## T34
+- Implemented `GET /meetings/{job_id}` route in `app/meetings.py`: loads job (404 if missing), queries `AppState` and auto_post setting, renders `meeting_detail.html`.
+- Implemented `POST /meetings/{job_id}/post`: calls `summary_card(job)` + `send_once()`, sets `job.posted_at` on `"sent"` or `"dry_run"` status, returns 303 redirect.
+- Created `app/templates/meeting_detail.html`: extends `base.html`, shows status badge, posted date, summary body (summary, decisions, action items, open questions), and conditional "Post naar Teams" form.
+- Created `tests/test_page_meeting_detail.py` (11 tests): 404, status rendering, summary content rendering, form visibility/fields, post form submission with redirect and `posted_at` update.
+- All 517 tests pass, 94% coverage, `make check` exit 0. Gotcha: `Job.result` holds the JSON summary (not `summary_result`); `send_once` returns `"dry_run"` in test env so `posted_at` must be set for both `"sent"` and `"dry_run"`.

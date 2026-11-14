@@ -125,9 +125,7 @@ def run_once(
         return "retry"
 
 
-def _handle_failure(
-    session: Session, job: Job, now: Any, error_msg: str
-) -> None:
+def _handle_failure(session: Session, job: Job, now: Any, error_msg: str) -> None:
     """Mark a job as failed or retryable."""
     job.error = error_msg
 
@@ -144,11 +142,7 @@ def _handle_failure(
 def reset_stuck(session: Session, now: datetime) -> None:
     """Reset jobs running longer than 30 minutes back to queued (SPEC 7.7)."""
     cutoff = now - RUN_STUCK_THRESHOLD
-    stuck = (
-        session.query(Job)
-        .filter(Job.status == "running", Job.started_at < cutoff)
-        .all()
-    )
+    stuck = session.query(Job).filter(Job.status == "running", Job.started_at < cutoff).all()
     for job in stuck:
         job.status = "queued"
         job.started_at = None
@@ -166,4 +160,5 @@ def main() -> None:
         result = run_once(session_factory()(), now_utc())
         if result in ("idle", "model_offline"):
             import time
+
             time.sleep(60)

@@ -49,9 +49,7 @@ class TestModelDown:
         assert job.started_at is None
 
         # Model status stored with up=False.
-        row = db.execute(
-            select(AppState).where(AppState.key == "model_status")
-        ).scalar_one()
+        row = db.execute(select(AppState).where(AppState.key == "model_status")).scalar_one()
         assert row.value["up"] is False
         assert row.value["checked_at"] is not None
         assert row.value["last_up_at"] is None
@@ -63,9 +61,7 @@ class TestModelDown:
 
         assert result == "model_offline"
 
-        row = db.execute(
-            select(AppState).where(AppState.key == "model_status")
-        ).scalar_one()
+        row = db.execute(select(AppState).where(AppState.key == "model_status")).scalar_one()
         assert row.value["up"] is False
 
 
@@ -110,9 +106,7 @@ class TestModelUp:
         assert job.status == "done"
 
         # last_up_at updated to the current time.
-        row = db.execute(
-            select(AppState).where(AppState.key == "model_status")
-        ).scalar_one()
+        row = db.execute(select(AppState).where(AppState.key == "model_status")).scalar_one()
         assert row.value["up"] is True
         assert row.value["last_up_at"] is not None
 
@@ -178,7 +172,5 @@ class TestResetStuck:
 
         reset_stuck(db, now)
 
-        done_job = db.execute(
-            select(Job).where(Job.id == done_job.id)
-        ).scalar_one()
+        done_job = db.execute(select(Job).where(Job.id == done_job.id)).scalar_one()
         assert done_job.status == "done"

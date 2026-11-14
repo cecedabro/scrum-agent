@@ -11,17 +11,20 @@ try:
 except ImportError:
     from backports.zoneinfo import ZoneInfo  # type: ignore[import-not-found,no-redef]
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.auth import require_team
-from app.clock import today_local
+from app.cards import summary_card
+from app.clock import now_utc, today_local
 from app.config import TIMEZONE, get_settings
 from app.db import get_db
 from app.fmt import datum_kort
 from app.models import AppState, Job
+from app.settings import load as load_settings
+from app.teams import send_once
 from app.transcripts import TranscriptError, as_text, parse_docx, parse_vtt
 
 STATUS_LABELS = {
@@ -229,3 +232,68 @@ async def meetings_upload(
         session.commit()
 
     return RedirectResponse(url="/meetings", status_code=303)
+
+
+@router.get("/meetings/{job_id}")
+async def meeting_detail(
+    job_id: int,
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Show a single meeting job detail (SPEC 7.8)."""
+    with next(get_db()) as session:
+        job = session.get(Job, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Vergadering niet gevonden")
+
+        model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
+        ms = model_status_row.value if model_status_row else None
+        model_state = _model_state_string(ms)
+
+        settings_row = load_settings(session)
+        auto_post = settings_row.summary_auto_post
+
+    return _meeting_templates.TemplateResponse(
+        request,
+        "meeting_detail.html",
+        {
+            "page_title": job.title,
+            "job": job,
+            "STATUS_LABELS": STATUS_LABELS,
+            "model_state": model_state,
+            "auto_post": auto_post,
+        },
+    )
+
+
+@router.post("/meetings/{job_id}/post")
+async def meeting_post(
+    job_id: int,
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Post a finished summary to Teams (SPEC 7.8)."""
+    with next(get_db()) as session:
+        job = session.get(Job, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Vergadering niet gevonden")
+
+        if job.status != "done":
+            raise HTTPException(
+                status_code=400, detail="Kan alleen een voltooide samenvatting posten"
+            )
+
+        if job.posted_at is not None:
+            session.commit()
+            return RedirectResponse(url=f"/meetings/{job_id}", status_code=303)
+
+        card = summary_card(job)
+        ref_key = f"summary:{job.id}"
+        status = send_once(session, "summary", ref_key, card)
+
+        if status in ("sent", "dry_run"):
+            job.posted_at = now_utc()
+
+        session.commit()
+
+    return RedirectResponse(url=f"/meetings/{job_id}", status_code=303)

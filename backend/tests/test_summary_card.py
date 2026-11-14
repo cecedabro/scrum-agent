@@ -77,22 +77,26 @@ class TestTitleDate:
 
 class TestSummarySection:
     def test_summary_text_shown(self) -> None:
-        j = _job(result={
-            "summary": "Iets besproken.",
-            "decisions": [],
-            "action_items": [],
-            "open_questions": [],
-        })
+        j = _job(
+            result={
+                "summary": "Iets besproken.",
+                "decisions": [],
+                "action_items": [],
+                "open_questions": [],
+            }
+        )
         card = summary_card(j)
         assert card["body"][1]["text"] == "Iets besproken."
 
     def test_summary_wrap_true(self) -> None:
-        j = _job(result={
-            "summary": "Foo",
-            "decisions": [],
-            "action_items": [],
-            "open_questions": [],
-        })
+        j = _job(
+            result={
+                "summary": "Foo",
+                "decisions": [],
+                "action_items": [],
+                "open_questions": [],
+            }
+        )
         card = summary_card(j)
         assert card["body"][1]["wrap"] is True
 

@@ -25,6 +25,7 @@ def _fake_teams_url(monkeypatch):
     """Ensure TEAMS_WEBHOOK_URL is set for all tests and clear cached settings."""
     monkeypatch.setenv("TEAMS_WEBHOOK_URL", _FAKE_WEBHOOK_URL)
     from app.config import get_settings
+
     get_settings.cache_clear()
 
 
@@ -68,9 +69,7 @@ class TestAutoPostOn:
     """Auto-post is enabled: card should be posted once and posted_at set."""
 
     @patch("app.worker.summarize")
-    def test_summary_card_posted_once_and_posted_at_set(
-        self, mock_summarize, db, auto_post_job
-    ):
+    def test_summary_card_posted_once_and_posted_at_set(self, mock_summarize, db, auto_post_job):
         """When auto-post is on, the card is sent and posted_at is set."""
         mock_summarize.return_value = Summary(
             summary="De samenvatting van de meeting.",
@@ -125,9 +124,11 @@ class TestAutoPostOn:
         finally:
             teams_client.close()
 
-        post_logs = db.execute(
-            select(PostLog).where(PostLog.ref_key == f"summary:{auto_post_job.id}")
-        ).scalars().all()
+        post_logs = (
+            db.execute(select(PostLog).where(PostLog.ref_key == f"summary:{auto_post_job.id}"))
+            .scalars()
+            .all()
+        )
         assert len(post_logs) == 1
 
 
@@ -150,9 +151,11 @@ class TestAutoPostOff:
         assert job.status == "done"
         assert job.posted_at is None
 
-        post_logs = db.execute(
-            select(PostLog).where(PostLog.ref_key == f"summary:{auto_post_disabled.id}")
-        ).scalars().all()
+        post_logs = (
+            db.execute(select(PostLog).where(PostLog.ref_key == f"summary:{auto_post_disabled.id}"))
+            .scalars()
+            .all()
+        )
         assert len(post_logs) == 0
 
 
@@ -160,9 +163,7 @@ class TestTeamsFailure:
     """Teams failures must not break the done state."""
 
     @patch("app.worker.summarize")
-    def test_retryable_failure_job_still_done(
-        self, mock_summarize, db, auto_post_job
-    ):
+    def test_retryable_failure_job_still_done(self, mock_summarize, db, auto_post_job):
         """A retryable Teams failure leaves the job done but posted_at empty."""
         mock_summarize.return_value = Summary(
             summary="Samenvatting.",

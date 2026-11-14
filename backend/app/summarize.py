@@ -99,9 +99,7 @@ def summarize(transcript: str, client: httpx.Client | None = None) -> Summary:
     return _merge_results(partial_results, client)
 
 
-def _single_call(
-    transcript: str, client: httpx.Client | None
-) -> Summary:
+def _single_call(transcript: str, client: httpx.Client | None) -> Summary:
     """One LLM call for a transcript that fits within the chunk limit."""
     schema = _MeetingSummary.model_json_schema()
     messages = [
@@ -127,9 +125,7 @@ def _single_call(
     raise SummaryError("Summarization failed after 2 attempts")
 
 
-def _summarise_chunk(
-    chunk: str, client: httpx.Client | None
-) -> dict[str, Any]:
+def _summarise_chunk(chunk: str, client: httpx.Client | None) -> dict[str, Any]:
     """Summarise one chunk of the transcript. Returns raw dict from LLM."""
     schema = _MeetingSummary.model_json_schema()
     messages = [
@@ -150,14 +146,11 @@ def _summarise_chunk(
     raise SummaryError("Summarization failed after 2 attempts")
 
 
-def _merge_results(
-    partial_results: list[dict[str, Any]], client: httpx.Client | None
-) -> Summary:
+def _merge_results(partial_results: list[dict[str, Any]], client: httpx.Client | None) -> Summary:
     """Merge partial JSON summaries into one ``Summary`` (SPEC 7.6)."""
     schema = _MeetingSummary.model_json_schema()
     combined = "\n\n".join(
-        f"Deelsamenvatting {i+1}:\n{_partial_to_text(p)}"
-        for i, p in enumerate(partial_results)
+        f"Deelsamenvatting {i + 1}:\n{_partial_to_text(p)}" for i, p in enumerate(partial_results)
     )
     messages = [
         {"role": "system", "content": MERGE_SYSTEM_PROMPT},
