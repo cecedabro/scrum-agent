@@ -108,7 +108,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: uvx --from actionlint-py actionlint .github/workflows/release.yml
 - [x] T43: `deploy/` part 1: `Makefile` (validate), `kustomization.yaml`, `namespace.yaml`, `app.yaml` (web Deployment with wait-for-db and migrate initContainers, Service) exactly per docs/deployment.md.
   accept: make -C deploy validate
-- [ ] T44: `deploy/` part 2: `worker.yaml`, `tick.yaml`, `postgres.yaml`, `secret.example.yaml` (REPLACE_ME values, not in the kustomization) and `deploy/README.md` (egress needs, OpenBao paths `secret/scrum-agent/app` and `secret/scrum-agent/db`).
+- [x] T44: `deploy/` part 2: `worker.yaml`, `tick.yaml`, `postgres.yaml`, `secret.example.yaml` (REPLACE_ME values, not in the kustomization) and `deploy/README.md` (egress needs, OpenBao paths `secret/scrum-agent/app` and `secret/scrum-agent/db`).
   accept: make -C deploy validate && grep -q REPLACE_ME deploy/secret.example.yaml && grep -q 'secret/scrum-agent/app' deploy/README.md
 
 ## Questions in Teams (phase 3, SPEC 10)

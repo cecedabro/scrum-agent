@@ -6,3 +6,6 @@ namespace: scrum-agent
 resources:
   - namespace.yaml
   - app.yaml
+  - worker.yaml
+  - tick.yaml
+  - postgres.yaml

@@ -250,3 +250,13 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `deploy/kustomization.yaml`: namespace `scrum-agent`, lists `namespace.yaml` and `app.yaml`.
 - Created `deploy/namespace.yaml`: Namespace `scrum-agent`.
 - Created `deploy/app.yaml`: web Deployment `scrum-agent` (1 replica, `Recreate`, port 8000), Service `scrum-agent` (port 80→8000), initContainers `wait-for-db` (busybox + nc) and `migrate` (alembic upgrade head). Security: runAsNonRoot uid 10001, readOnlyRootFilesystem, drop ALL, seccomp RuntimeDefault, emptyDir /tmp, automountServiceAccountToken false. Node affinity excludes `k3s-gpu-01`. Resources 25m/128Mi request, 256Mi limit. Liveness `/healthz`, readiness `/readyz`. Image tag `0.1.0` with flux `$imagepolicy` marker. Both containers and migrate get `envFrom` secret + plain env vars (APP_ENV, LLM_BASE_URL, TEAM_USER). `make -C deploy validate` passes (3 resources valid), `make check` exit 0. Next task T44: worker.yaml, tick.yaml, postgres.yaml, secret.example.yaml, README.md.
+
+## T44
+- Created `deploy/worker.yaml`: Deployment `scrum-agent-worker` (1 replica, `Recreate`, `command: ["python", "-m", "app.worker"]`, no Service, no probes), same security/context/node-affinity as web, resources 10m/96Mi request, 192Mi limit, `envFrom` secret + plain `APP_ENV`/`LLM_BASE_URL`.
+- Created `deploy/tick.yaml`: CronJob `scrum-agent-tick`, `*/10 * * * *`, `timeZone: Europe/Amsterdam`, `concurrencyPolicy: Forbid`, `startingDeadlineSeconds: 300`, `backoffLimit: 0`, history limits 3/3. Same security/resources as worker.
+- Created `deploy/postgres.yaml`: StatefulSet `scrum-agent-db` (postgres:16.10), Service `scrum-agent-db:5432`, `PGDATA=/var/lib/postgresql/data/pgdata`, 2Gi `longhorn` PVC, fsGroup 999, resources 50m/256Mi request, 512Mi limit.
+- Created `deploy/secret.example.yaml`: both Secrets (`scrum-agent-app` and `scrum-agent-db`) with `REPLACE_ME` values; NOT in kustomization.
+- Created `deploy/README.md`: egress needs (PC 192.168.50.17:8080, waker 192.168.50.11:9009, Teams HTTPS), OpenBao paths `secret/scrum-agent/app` and `secret/scrum-agent/db`, rollback instructions.
+- Updated `deploy/kustomization.yaml`: added `worker.yaml`, `tick.yaml`, `postgres.yaml` to resources.
+- Gotcha: `backoffLimit` must be at `spec/jobTemplate/spec/backoffLimit`, not `spec/backoffLimit` (kubeconform strict validation).
+- `make -C deploy validate` passes (7 resources valid), `make check` exit 0.
