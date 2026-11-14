@@ -21,9 +21,6 @@
     <main>
         {% if page_title %}<h1>{{ page_title }}</h1>{% endif %}
         {% block content %}{% endblock %}
-        {% if not deadlines and not meeting_jobs %}
-        <p class="empty-state">Geen deadlines om te bekijken.</p>
-        {% endif %}
     </main>
     <footer>
         <p>Scrum agent &mdash; HvA</p>

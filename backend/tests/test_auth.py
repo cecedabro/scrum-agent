@@ -86,7 +86,7 @@ def test_wrong_username_returns_401() -> None:
 # ------------------------------------------------------------------
 # Right credentials → 200
 # ------------------------------------------------------------------
-def test_success_with_valid_credentials() -> None:
+def test_success_with_valid_credentials(db) -> None:
     """Right user/password → 200."""
     settings = _credentials()
     creds = _b64_credentials(settings[0], settings[1])
@@ -99,7 +99,7 @@ def test_success_with_valid_credentials() -> None:
 # ------------------------------------------------------------------
 # Rate limiting  (SPEC 2.2)
 # ------------------------------------------------------------------
-def test_11th_failure_returns_429() -> None:
+def test_11th_failure_returns_429(db) -> None:
     """More than 10 failures in 5 minutes → 429."""
     settings = _credentials()
     wrong = _b64_credentials(settings[0], "bad")
@@ -122,7 +122,7 @@ def test_11th_failure_returns_429() -> None:
     assert r.status_code == 200
 
 
-def test_rate_limit_per_ip() -> None:
+def test_rate_limit_per_ip(db) -> None:
     """Rate limit is per IP, not per user."""
     settings = _credentials()
     wrong = _b64_credentials(settings[0], "bad")

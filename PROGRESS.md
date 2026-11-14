@@ -216,3 +216,14 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_meeting_delete.py` (10 tests): covers redirect, 404 on unknown ID, deletion across statuses (done/queued/failed/running), removal from list, delete button visibility on detail page, and delete via detail form.
 - Gotcha: SQLAlchemy identity map caches pre-delete objects in the test session. All `db.get(Job, id) is None` assertions replaced with `db.execute(select(Job).where(Job.id == id)).scalar_one_or_none() is None` to bypass identity map and verify actual DB deletion.
 - All 549 tests pass, 94% coverage, `make check` exit 0.
+
+## T39
+- Created `backend/app/templates/index.html`: Dutch overview page with independent empty-state sections for deadlines, meetings/jobs, and model state.
+- Updated `backend/app/web.py` `index` route: queries `Deadline` (today+future, sorted), `Job` (kind="summary", ordered by id DESC, limited 3), and `AppState` (model_status), passes to template.
+- Removed empty-state conditional from `backend/app/templates/base.html` (per SPEC §5.1: "no hidden global empty-state logic").
+- Registered `datum_kort` as a Jinja2 filter in `web.py`'s `_jinja_env` (missing registration caused filter to output nothing in templates).
+- Created `backend/tests/test_page_home.py` (12 tests): renders, auth required, deadlines list, jobs list, model state, empty states, `aria-current`, nav link active.
+- Fixed `backend/tests/test_base_template.py::auth_client`: added `db` fixture dependency — without it, tests hitting `/` tried a real Postgres connection (`ModuleNotFoundError: No module named 'psycopg2'`).
+- Fixed `backend/tests/test_auth.py`: added `db` dependency to `test_success_with_valid_credentials`, `test_11th_failure_returns_429`, and `test_rate_limit_per_ip` (same psycopg2 issue — these tests log in and hit `/`).
+- All 581 tests pass, 94% coverage, `make check` exit 0.
+- Note: `datum_kort` must be registered on every isolated Jinja2 Environment that renders deadline/job/model data (web.py, meetings.py, _jinja_env).

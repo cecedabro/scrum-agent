@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Overzicht — Scrum agent{% endblock %}
+{% block content %}
+
+<h1>Overzicht</h1>
+
+<section>
+    <h2>Komende deadlines</h2>
+    {% if next_deadlines %}
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Titel</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dl in next_deadlines %}
+            <tr>
+                <td>{{ datum(dl.due_date) }}{% if dl.due_time %} om {{ dl.due_time.strftime('%H:%M') }}{% endif %} ({{ relatief(dl.due_date, today) }})</td>
+                <td>{{ dl.title }}</td>
+                <td><a href="/deadlines/{{ dl.id }}/edit">Bewerken</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">Geen deadlines om te bekijken.</p>
+    {% endif %}
+</section>
+
+<section>
+    <h2>Laatste vergaderingen</h2>
+    {% if model_state %}
+    <p class="model-state">{{ model_state }}</p>
+    {% endif %}
+    {% if last_jobs %}
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Titel</th>
+                <th>Datum</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in last_jobs %}
+            <tr>
+                <td>{{ STATUS_LABELS.get(job.status, job.status) }}</td>
+                <td><a href="/meetings/{{ job.id }}">{{ job.title }}</a></td>
+                <td>{{ job.meeting_date | datum_kort }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">Nog geen vergaderingen.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

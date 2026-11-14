@@ -22,7 +22,8 @@ from app.db import get_db
 from app.deadlines import DeadlineIn, create, past, upcoming, update
 from app.deadlines import delete as _delete_deadline
 from app.fmt import datum, datum_kort, relatief
-from app.models import Deadline
+from app.meetings import STATUS_LABELS, _model_state_string
+from app.models import AppState, Deadline, Job
 from app.teams import get_teams_client
 
 # Jinja2 environment
@@ -32,11 +33,14 @@ _jinja_env = Environment(
     autoescape=select_autoescape(),
 )
 
-# Register Dutch date format filters as globals
+# Register Dutch date format functions as globals
 _jinja_env.globals["datum"] = datum
 _jinja_env.globals["datum_kort"] = datum_kort
 _jinja_env.globals["relatief"] = relatief
 _jinja_env.globals["TIMEZONE"] = TIMEZONE
+
+# Also register datum_kort as a filter (used in index.html and meeting_detail.html)
+_jinja_env.filters["datum_kort"] = datum_kort
 
 # FastAPI-compatible templates helper
 templates = Jinja2Templates(env=_jinja_env)
@@ -46,15 +50,28 @@ router = APIRouter()
 
 @router.get("/")
 async def index(request: Request, _auth: None = Depends(require_team)) -> Response:
-    """Overview (Overzicht) page — empty state when no deadlines exist."""
+    """Overview (Overzicht) page — next 5 deadlines, last 3 jobs, model state."""
+    with next(get_db()) as session:
+        today = today_local()
+        next_deadlines = upcoming(session, today=today)[:5]
+
+        last_jobs = (
+            session.query(Job).filter(Job.kind == "summary").order_by(Job.id.desc()).limit(3).all()
+        )
+
+        model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
+        ms = model_status_row.value if model_status_row else None
+        model_state = _model_state_string(ms)
+
     return templates.TemplateResponse(
         request,
-        "base.html",
+        "index.html",
         {
-            "page_title": "Overzicht",
-            "deadlines": [],
-            "meeting_jobs": [],
-            "model_reachable": False,
+            "next_deadlines": next_deadlines,
+            "last_jobs": last_jobs,
+            "STATUS_LABELS": STATUS_LABELS,
+            "model_state": model_state,
+            "today": today,
         },
     )
 

@@ -96,7 +96,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_meeting_delete.py -q
 - [x] T38: `/privacy` page in Dutch (SPEC 8.4) with the contents of docs/privacy.md (what, where, how long, how to delete). Write `tests/test_page_privacy.py` (200 behind auth, each row of the table present, nav `aria-current`).
   accept: cd backend && uv run pytest tests/test_page_privacy.py -q
-- [ ] T39: The `/` overview (docs/frontend.md): next 5 deadlines, last 3 summary jobs with status, model state. Move the empty-state text out of `base.html` into this page's own template. Write `tests/test_page_home.py`.
+- [x] T39: The `/` overview (docs/frontend.md): next 5 deadlines, last 3 summary jobs with status, model state. Move the empty-state text out of `base.html` into this page's own template. Write `tests/test_page_home.py`.
   accept: cd backend && uv run pytest tests/test_page_home.py -q
 - [ ] T40: `backend/scripts/dev.py` for `make dev`: start pgserver in `backend/.devdb/`, migrate, seed 4 deadlines relative to today and one finished summary, set `LLM_BASE_URL` to a tiny in-process fake that returns a canned summary, and run uvicorn on :8000. Write `tests/test_dev_seed.py` for the seed function only (not the server).
   accept: cd backend && uv run pytest tests/test_dev_seed.py -q
