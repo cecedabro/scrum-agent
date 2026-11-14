@@ -86,7 +86,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_summary_autopost.py -q
 - [x] T34: `/meetings/{id}` detail page (SPEC 7.8): summary, decisions, action items, open questions; status text while not done; 404 for unknown ids; a "Post naar Teams" form (`POST /meetings/{id}/post`, 303 back) when the job is done and not posted. Write `tests/test_page_meeting_detail.py`.
   accept: cd backend && uv run pytest tests/test_page_meeting_detail.py -q
-- [ ] T35: Optional wake (SPEC 7.9) in the worker. Write `tests/test_waker.py` (not configured → no call; configured + queued + model down → one POST with `X-Waker-Token`; a second call within 30 min → none; after 31 min → again; waker 500 does not crash).
+- [x] T35: Optional wake (SPEC 7.9) in the worker. Write `tests/test_waker.py` (not configured → no call; configured + queued + model down → one POST with `X-Waker-Token`; a second call within 30 min → none; after 31 min → again; waker 500 does not crash).
   accept: cd backend && uv run pytest tests/test_waker.py -q
 
 ## Privacy and polish

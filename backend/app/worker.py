@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.cards import summary_card
+from app.config import get_settings
 from app.llm import is_up
 from app.models import AppState, Job
 from app.settings import load as load_settings
@@ -27,6 +28,7 @@ from app.teams import send_once
 logger = logging.getLogger(__name__)
 
 RUN_STUCK_THRESHOLD = timedelta(minutes=30)
+WAKE_COOLDOWN = timedelta(minutes=30)
 
 
 def _store_model_status(session: Session, up: bool, now: datetime) -> None:
@@ -43,6 +45,58 @@ def _store_model_status(session: Session, up: bool, now: datetime) -> None:
     else:
         row.value = value
     session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Optional PC wake (SPEC 7.9)
+# ---------------------------------------------------------------------------
+
+_LAST_WAKE_KEY = "last_wake"
+
+
+def _store_last_wake(session: Session, now: datetime) -> None:
+    """Persist the last wake attempt time in app_state."""
+    row = session.query(AppState).filter(AppState.key == _LAST_WAKE_KEY).first()
+    value = now.isoformat()
+    if row is None:
+        row = AppState(key=_LAST_WAKE_KEY, value=value)
+        session.add(row)
+    else:
+        row.value = value
+    session.flush()
+
+
+def _should_wake(session: Session, now: datetime) -> bool:
+    """Return True when a wake call is warranted (cooldown expired)."""
+    row = session.query(AppState).filter(AppState.key == _LAST_WAKE_KEY).first()
+    if row is None:
+        return True
+    last = datetime.fromisoformat(row.value)  # type: ignore[arg-type]
+    return (now - last) >= WAKE_COOLDOWN
+
+
+def _wake(session: Session, now: Any, *, client: httpx.Client | None = None) -> None:
+    """POST to the wake endpoint when configured and cooldown permits."""
+    settings = get_settings()
+    waker_url = settings.WAKER_URL
+    waker_token = settings.WAKER_TOKEN
+    if not waker_url or not waker_token:
+        return
+    if not _should_wake(session, now):
+        return
+    local_client = client or httpx.Client()
+    try:
+        local_client.post(
+            f"{waker_url}/wake",
+            headers={"X-Waker-Token": waker_token},
+            timeout=5,
+        )
+    except Exception:
+        logger.exception("Wake call failed")
+    finally:
+        if client is None:
+            local_client.close()
+    _store_last_wake(session, now)
 
 
 def run_once(
@@ -64,6 +118,7 @@ def run_once(
     _store_model_status(session, up, now)
 
     if not up:
+        _wake(session, now)
         return "model_offline"
 
     # Claim one queued job (SPEC 7.7: skip locked).

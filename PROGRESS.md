@@ -198,3 +198,7 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `app/templates/meeting_detail.html`: extends `base.html`, shows status badge, posted date, summary body (summary, decisions, action items, open questions), and conditional "Post naar Teams" form.
 - Created `tests/test_page_meeting_detail.py` (11 tests): 404, status rendering, summary content rendering, form visibility/fields, post form submission with redirect and `posted_at` update.
 - All 517 tests pass, 94% coverage, `make check` exit 0. Gotcha: `Job.result` holds the JSON summary (not `summary_result`); `send_once` returns `"dry_run"` in test env so `posted_at` must be set for both `"sent"` and `"dry_run"`.
+
+## T35
+- Modified `backend/app/worker.py`: added optional PC wake mechanism (SPEC 7.9) — when `WAKER_URL` and `WAKER_TOKEN` are set, model is unreachable, and queued jobs exist, POSTs to `{WAKER_URL}/wake` with `X-Waker-Token` header. Stores last wake timestamp in `app_state` key `last_wake`. Cooldown enforced at 30 minutes via `WAKE_COOLDOWN`. Waker 500 errors are caught by `except Exception` and do not crash.
+- Created `backend/tests/test_waker.py` (7 tests): unconfigured (no URL/no token), configured triggers POST with token, cooldown enforced (<30 min), cooldown expired (>31 min), waker 500 no crash, `run_once` triggers wake when model offline. All 524 tests pass, 94% coverage, `make check` exit 0.
