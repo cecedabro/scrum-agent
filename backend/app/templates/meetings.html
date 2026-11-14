@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ page_title }}</h1>
+
+<form method="post" action="/meetings" enctype="multipart/form-data">
+    <fieldset>
+        <legend>Transcript uploaden</legend>
+        <div>
+            <label for="file">Bestand</label>
+            <input type="file" id="file" name="file" accept=".vtt,.docx" required>
+        </div>
+        <div>
+            <label for="title">Titel</label>
+            <input type="text" id="title" name="title" value="{{ title or '' }}">
+        </div>
+        <div>
+            <label for="meeting_date">Datum</label>
+            <input type="date" id="meeting_date" name="meeting_date" value="{{ default_date }}">
+        </div>
+        <div>
+            <button type="submit">Uploaden</button>
+        </div>
+    </fieldset>
+</form>
+
+{% endblock %}

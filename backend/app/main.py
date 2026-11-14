@@ -14,6 +14,7 @@ from sqlalchemy import text
 from app.config import check_production, get_settings
 from app.db import get_engine
 from app.deadlines import api_router as deadlines_api_router
+from app.meetings import router as meetings_router
 from app.paths import STATIC_DIR
 from app.web import router as web_router
 
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
 
     app.include_router(web_router)
     app.include_router(deadlines_api_router)
+    app.include_router(meetings_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:

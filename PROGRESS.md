@@ -121,3 +121,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Modified `backend/app/web.py`: Changed `deadlines_add` POST handler to return `status_code=422` on validation errors (was 200). Fixed `due_date` empty string bug (falsy check skipped error creation). Added `note` max 1000 char validation.
 - Updated `backend/tests/test_page_deadlines_edit.py`: Changed 5 tests from expecting `status_code == 200` to `422` for validation error cases (empty title, long title, invalid date, invalid time, preserved input on error).
 - All 385 tests pass, 95% coverage, `make check` exit 0.
+
+## T23
+- Created `backend/app/meetings.py`: `APIRouter` with `GET /meetings` that renders `meetings.html` template, uses `require_team` for auth, loads `Job` rows ordered by id desc, passes `default_date` (today's ISO date).
+- Created `backend/app/templates/meetings.html`: form with `enctype="multipart/form-data"`, file input (`type="file"`, `name="file"`, `accept=".vtt,.docx"`), title input (`name="title"`), meeting_date input (`name="meeting_date"`), extends `base.html` (gets `aria-current="page"` from nav).
+- Updated `backend/app/main.py`: imported and included `meetings_router` in `create_app()`.
+- `test_form_is_shown` passes. `make check` exit 0, 403 tests pass, 95% coverage.
+- Gotcha: meetings.py uses its own Jinja2 Environment (same templates dir) to avoid coupling to web.py's globals. Next task (T24) needs to implement `POST /meetings` upload handling with file parsing and job creation.
