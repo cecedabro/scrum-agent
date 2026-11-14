@@ -1,3 +1,11 @@
+{% if has_pending %}
+<div class="jobs-wrapper" hx-get="/meetings/partial" hx-trigger="every 10s" hx-swap="outerHTML">
+{% else %}
+<div class="jobs-wrapper">
+{% endif %}
+{% if model_state %}
+<p class="model-state">{{ model_state }}</p>
+{% endif %}
 {% if not jobs %}
 <p class="empty-state">Nog geen vergaderingen.</p>
 {% else %}
@@ -25,3 +33,4 @@
     </tbody>
 </table>
 {% endif %}
+</div>

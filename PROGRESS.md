@@ -144,3 +144,11 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Registered `datum_kort` filter on `_meeting_env` in `backend/app/meetings.py`; added `STATUS_LABELS` mapping.
 - All 10 filtered job list tests pass (`-k "not model and not partial and not poll"`); `make check` exit 0, 92% coverage.
 - Gotcha: `_meeting_env` is isolated from `web.py`'s Jinja env — any new filters needed on meetings pages must be explicitly registered there.
+
+## T26
+- Implemented model state display and HTMX polling on `/meetings` (SPEC 7.3).
+- Added `GET /meetings/partial` route (declared before `/meetings` to avoid route conflict) returning only `_jobs.html` fragment for HTMX `outerHTML` swap.
+- Created `_model_state_string(ms)` helper in `backend/app/meetings.py`: reads `AppState` row with key `model_status`, returns "model bereikbaar" when `up=True`, or "model offline (pc slaapt of is gepauzeerd), laatst gezien <datum_kort> <HH:MM>" with UTC→Amsterdam conversion when `up=False` and `last_up_at` is set.
+- `GET /meetings` now queries `AppState`, computes `model_state`, filters jobs by `kind="summary"`, passes to `_jobs.html`.
+- `_jobs.html` wraps jobs table in `<div class="jobs-wrapper">` with conditional HTMX polling attributes (`hx-get="/meetings/partial"`, `hx-trigger="every 10s"`, `hx-swap="outerHTML"`) only when `has_pending` is true.
+- All 19 tests pass (`make check` exit 0). Gotcha: use `ZoneInfo(TIMEZONE)` not `TIMEZONE` string directly for `astimezone()`; `_model_state_string` handles `ms=None` for the "nog nooit gezien" case.
