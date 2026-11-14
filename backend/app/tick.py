@@ -12,13 +12,11 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.clock import now_utc
-from app.config import get_settings
 from app.db import get_engine, session_factory
-from app.models import PostLog
+from app.retention import apply_retention
 from app.schedule import due_posts
 from app.settings import load as load_settings
 from app.teams import send_once
@@ -70,19 +68,9 @@ def run_tick(
         status = send_once(session, post.kind, post.ref_key, post.card, client=client)
         log_lines.append(f"{post.kind} {post.ref_key} {status}")
 
-    # Apply retention: delete sent posts older than POST_LOG_RETENTION_DAYS
-    settings_env = get_settings()
-    retention_days = settings_env.POST_LOG_RETENTION_DAYS
-    cutoff = now - datetime.timedelta(days=retention_days)
-
-    result = session.execute(
-        delete(PostLog).where(
-            PostLog.status == "sent",
-            PostLog.sent_at < cutoff,
-        )
-    )
-    if result.rowcount:  # type: ignore[attr-defined]
-        log_lines.append(f"retention deleted {result.rowcount} post_log rows")  # type: ignore[attr-defined]
+    # Apply retention: transcripts, summaries, deadlines, post-logs (SPEC 8)
+    retention_log = apply_retention(session, now)
+    log_lines.extend(retention_log)
 
     session.commit()
 
