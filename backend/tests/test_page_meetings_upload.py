@@ -22,6 +22,8 @@ VTT = (FIXTURES / "sample.vtt").read_bytes()
 DOCX = (FIXTURES / "sample.docx").read_bytes()
 NOW = datetime(2026, 11, 16, 8, 0, tzinfo=UTC)  # Monday 16 November, 09:00 Amsterdam
 
+PENDING_UNTIL = "T24"  # see backend/conftest.py
+
 
 @pytest.fixture(autouse=True)
 def fixed_clock(monkeypatch: pytest.MonkeyPatch) -> None:

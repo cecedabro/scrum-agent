@@ -19,6 +19,8 @@ from app.models import Deadline
 # Monday 16 November 2026, 09:00 in Amsterdam.
 NOW = datetime(2026, 11, 16, 8, 0, tzinfo=UTC)
 
+PENDING_UNTIL = "T09"  # see backend/conftest.py
+
 
 @pytest.fixture(autouse=True)
 def fixed_clock(monkeypatch: pytest.MonkeyPatch) -> None:

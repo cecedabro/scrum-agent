@@ -18,6 +18,8 @@ from app.models import AppState, Job
 NOW = datetime(2026, 11, 16, 8, 0, tzinfo=UTC)  # Monday 16 November, 09:00 Amsterdam
 POLL = 'hx-trigger="every 10s"'
 
+PENDING_UNTIL = "T26"  # see backend/conftest.py
+
 
 @pytest.fixture(autouse=True)
 def fixed_clock(monkeypatch: pytest.MonkeyPatch) -> None:
