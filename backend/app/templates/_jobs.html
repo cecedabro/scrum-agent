@@ -1,0 +1,27 @@
+{% if not jobs %}
+<p class="empty-state">Nog geen vergaderingen.</p>
+{% else %}
+<table>
+    <thead>
+        <tr>
+            <th>Status</th>
+            <th>Titel</th>
+            <th>Datum</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr>
+            <td>{{ STATUS_LABELS.get(job.status, job.status) }}</td>
+            <td><a href="/meetings/{{ job.id }}">{{ job.title }}</a></td>
+            <td>{{ job.meeting_date | datum_kort }}</td>
+        </tr>
+        {% if job.status == "failed" and job.error %}
+        <tr>
+            <td colspan="3" class="error">{{ job.error }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}

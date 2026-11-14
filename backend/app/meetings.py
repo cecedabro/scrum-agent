@@ -18,6 +18,13 @@ from app.fmt import datum_kort
 from app.models import Job
 from app.transcripts import TranscriptError, as_text, parse_docx, parse_vtt
 
+STATUS_LABELS = {
+    "queued": "in de wachtrij",
+    "running": "bezig",
+    "done": "klaar",
+    "failed": "mislukt",
+}
+
 router = APIRouter()
 
 _templates_dir = Path(__file__).resolve().parent / "templates"
@@ -25,6 +32,7 @@ _meeting_env = Environment(
     loader=FileSystemLoader(str(_templates_dir)),
     autoescape=select_autoescape(),
 )
+_meeting_env.filters["datum_kort"] = datum_kort
 _meeting_templates = Jinja2Templates(env=_meeting_env)
 
 
@@ -45,6 +53,8 @@ async def meetings_page(
         {
             "page_title": "Vergaderingen",
             "meeting_jobs": jobs,
+            "jobs": jobs,
+            "STATUS_LABELS": STATUS_LABELS,
             "model_reachable": False,
             "default_date": today.isoformat(),
             "errors": {},
@@ -66,12 +76,16 @@ async def meetings_upload(
     filename = file.filename or ""
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     if ext not in ("vtt", "docx"):
+        with next(get_db()) as session:
+            jobs = session.query(Job).order_by(Job.id.desc()).all()
         return _meeting_templates.TemplateResponse(
             request,
             "meetings.html",
             {
                 "page_title": "Vergaderingen",
-                "meeting_jobs": [],
+                "meeting_jobs": jobs,
+                "jobs": jobs,
+                "STATUS_LABELS": STATUS_LABELS,
                 "model_reachable": False,
                 "default_date": today_local().isoformat(),
                 "errors": {"file": "Alleen .vtt en .docx bestanden worden geaccepteerd"},

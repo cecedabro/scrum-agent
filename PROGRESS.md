@@ -136,3 +136,11 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Added `UnicodeDecodeError` to the transcript parse exception handler (catches non-UTF-8 VTT files).
 - Created `backend/tests/test_page_meetings_upload.py` (15 tests): form rendering, login requirement, VTT upload → queued job, DOCX same output as VTT, uppercase extension, title/date defaults, title trimming, txt refused, no extension refused, empty VTT refused, non-UTF-8 VTT refused, broken DOCX refused, bad date refused, too-large refused, exactly-at-limit accepted.
 - All 403 tests pass, 92% coverage, `make check` exit 0.
+
+## T25
+- Implemented job list on `/meetings` (SPEC 7.3): `GET` handler loads `Job` rows filtered by `kind="summary"`, ordered by id desc, passing `jobs` and `STATUS_LABELS` to templates.
+- Created `backend/app/templates/_jobs.html`: renders job table with title, `datum_kort(meeting_date)`, Dutch status label (queued→"in de wachtrij", running→"bezig", done→"klaar", failed→"mislukt"), and error message for failed jobs; shows empty state "Nog geen vergaderingen." when no jobs exist.
+- Updated `backend/app/templates/meetings.html` to include `_jobs.html` partial.
+- Registered `datum_kort` filter on `_meeting_env` in `backend/app/meetings.py`; added `STATUS_LABELS` mapping.
+- All 10 filtered job list tests pass (`-k "not model and not partial and not poll"`); `make check` exit 0, 92% coverage.
+- Gotcha: `_meeting_env` is isolated from `web.py`'s Jinja env — any new filters needed on meetings pages must be explicitly registered there.
