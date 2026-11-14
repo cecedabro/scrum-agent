@@ -22,7 +22,8 @@ from app.db import get_db
 from app.deadlines import DeadlineIn, create, past, upcoming, update
 from app.deadlines import delete as _delete_deadline
 from app.fmt import datum, datum_kort, relatief
-from app.models import Deadline
+from app.meetings import STATUS_LABELS, _model_state_string
+from app.models import AppState, Deadline, Job
 from app.teams import get_teams_client
 
 # Jinja2 environment
@@ -32,11 +33,14 @@ _jinja_env = Environment(
     autoescape=select_autoescape(),
 )
 
-# Register Dutch date format filters as globals
+# Register Dutch date format functions as globals
 _jinja_env.globals["datum"] = datum
 _jinja_env.globals["datum_kort"] = datum_kort
 _jinja_env.globals["relatief"] = relatief
 _jinja_env.globals["TIMEZONE"] = TIMEZONE
+
+# Also register datum_kort as a filter (used in index.html and meeting_detail.html)
+_jinja_env.filters["datum_kort"] = datum_kort
 
 # FastAPI-compatible templates helper
 templates = Jinja2Templates(env=_jinja_env)
@@ -46,15 +50,28 @@ router = APIRouter()
 
 @router.get("/")
 async def index(request: Request, _auth: None = Depends(require_team)) -> Response:
-    """Overview (Overzicht) page — empty state when no deadlines exist."""
+    """Overview (Overzicht) page — next 5 deadlines, last 3 jobs, model state."""
+    with next(get_db()) as session:
+        today = today_local()
+        next_deadlines = upcoming(session, today=today)[:5]
+
+        last_jobs = (
+            session.query(Job).filter(Job.kind == "summary").order_by(Job.id.desc()).limit(3).all()
+        )
+
+        model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
+        ms = model_status_row.value if model_status_row else None
+        model_state = _model_state_string(ms)
+
     return templates.TemplateResponse(
         request,
-        "base.html",
+        "index.html",
         {
-            "page_title": "Overzicht",
-            "deadlines": [],
-            "meeting_jobs": [],
-            "model_reachable": False,
+            "next_deadlines": next_deadlines,
+            "last_jobs": last_jobs,
+            "STATUS_LABELS": STATUS_LABELS,
+            "model_state": model_state,
+            "today": today,
         },
     )
 
@@ -112,11 +129,15 @@ async def deadlines_add(
         elif len(title) > 200:
             errors["title"] = "Titel mag maximaal 200 tekens bevatten"
 
-        try:
-            parsed_date = date.fromisoformat(due_date) if due_date else None
-        except (ValueError, TypeError):
+        if not due_date:
+            errors["due_date"] = "Vul een datum in (YYYY-MM-DD)"
             parsed_date = None
-            errors["due_date"] = "Ongeldige datum (YYYY-MM-DD)"
+        else:
+            try:
+                parsed_date = date.fromisoformat(due_date)
+            except ValueError:
+                parsed_date = None
+                errors["due_date"] = "Ongeldige datum (YYYY-MM-DD)"
 
         parsed_time: dt_time | None = None
         if due_time:
@@ -124,6 +145,9 @@ async def deadlines_add(
                 parsed_time = dt_time.fromisoformat(due_time)
             except ValueError:
                 errors["due_time"] = "Ongeldige tijd (HH:MM)"
+
+        if note and len(note) > 1000:
+            errors["note"] = "Notitie mag maximaal 1000 tekens bevatten"
 
         if errors:
             with next(get_db()) as session2:
@@ -143,6 +167,7 @@ async def deadlines_add(
                     "form_note": note,
                     "errors": errors,
                 },
+                status_code=422,
             )
 
         data = DeadlineIn(title=title, due_date=parsed_date, due_time=parsed_time, note=note)
@@ -397,5 +422,25 @@ async def settings_test(
             "webhook_set": webhook_set,
             "errors": {},
             "test_result": status_labels.get(status, status),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Privacy page (SPEC 8.4)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/privacy")
+async def privacy_page(
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Privacy page in Dutch (SPEC 8.4)."""
+    return templates.TemplateResponse(
+        request,
+        "privacy.html",
+        {
+            "page_title": "Privacy",
         },
     )

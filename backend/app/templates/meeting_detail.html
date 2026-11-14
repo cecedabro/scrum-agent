@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ job.title }}</h1>
+
+<table>
+    <tr>
+        <th>Status</th>
+        <td>{{ STATUS_LABELS.get(job.status, job.status) }}</td>
+    </tr>
+    {% if job.posted_at %}
+    <tr>
+        <th>Gepost</th>
+        <td>{{ job.posted_at | datum_kort }}</td>
+    </tr>
+    {% else %}
+    <tr>
+        <th>Gepost</th>
+        <td>Nog niet gepost</td>
+    </tr>
+    {% endif %}
+    {% if job.status == "done" and job.posted_at is none and not auto_post %}
+    <tr>
+        <th>Manual post</th>
+        <td>
+            <form method="post" action="/meetings/{{ job.id }}/post">
+                <button type="submit">Post naar Teams</button>
+            </form>
+        </td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if job.status == "done" and job.result %}
+<h2>Samenvatting</h2>
+<p>{{ job.result.summary }}</p>
+
+{% if job.result.decisions %}
+<h3>Beslissingen</h3>
+<ul>
+{% for d in job.result.decisions %}
+    <li>{{ d }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% if job.result.action_items %}
+<h3>Actiepunten</h3>
+<ul>
+{% for a in job.result.action_items %}
+    <li>{{ a }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% if job.result.open_questions %}
+<h3>Vragen</h3>
+<ul>
+{% for q in job.result.open_questions %}
+    <li>{{ q }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endif %}
+
+<form method="post" action="/meetings/{{ job.id }}/delete" style="display:inline;">
+    <button type="submit">Verwijderen</button>
+</form>
+<a href="/meetings">Terug</a>
+{% endblock %}

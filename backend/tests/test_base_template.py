@@ -21,7 +21,7 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 
 
 @pytest.fixture()
-def auth_client():
+def auth_client(db):
     """TestClient with valid Basic auth headers."""
     settings = get_settings()
     encoded = base64.b64encode(f"{settings.TEAM_USER}:{settings.TEAM_PASSWORD}".encode()).decode()

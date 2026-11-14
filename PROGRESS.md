@@ -116,3 +116,126 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_models_job.py` (22 tests): table existence, defaults (queued/summary/0), full insert, status transitions, failed status, different kind, timestamps set, started_at set, AppState insert/update/null/updated_at, column name checks, key is pk, timestamps are UTC, database defaults verification.
 - Gotcha: JSON columns use `Mapped[Any | None]` not `Mapped[dict | None]` to satisfy mypy strict mode. Migration uses `sa.JSON()` type. Both models follow the data model spec in docs/backend.md.
 - All 385 tests pass, 95% coverage, `make check` exit 0. Next task needs the worker that queries `Job` rows with `SKIP LOCKED`.
+
+## T09
+- Modified `backend/app/web.py`: Changed `deadlines_add` POST handler to return `status_code=422` on validation errors (was 200). Fixed `due_date` empty string bug (falsy check skipped error creation). Added `note` max 1000 char validation.
+- Updated `backend/tests/test_page_deadlines_edit.py`: Changed 5 tests from expecting `status_code == 200` to `422` for validation error cases (empty title, long title, invalid date, invalid time, preserved input on error).
+- All 385 tests pass, 95% coverage, `make check` exit 0.
+
+## T23
+- Created `backend/app/meetings.py`: `APIRouter` with `GET /meetings` that renders `meetings.html` template, uses `require_team` for auth, loads `Job` rows ordered by id desc, passes `default_date` (today's ISO date).
+- Created `backend/app/templates/meetings.html`: form with `enctype="multipart/form-data"`, file input (`type="file"`, `name="file"`, `accept=".vtt,.docx"`), title input (`name="title"`), meeting_date input (`name="meeting_date"`), extends `base.html` (gets `aria-current="page"` from nav).
+- Updated `backend/app/main.py`: imported and included `meetings_router` in `create_app()`.
+- `test_form_is_shown` passes. `make check` exit 0, 403 tests pass, 95% coverage.
+- Gotcha: meetings.py uses its own Jinja2 Environment (same templates dir) to avoid coupling to web.py's globals. Next task (T24) needs to implement `POST /meetings` upload handling with file parsing and job creation.
+
+## T24
+- Implemented `POST /meetings` in `backend/app/meetings.py`: extension check (case-insensitive `.vtt`/`.docx` only), size guard (`MAX_UPLOAD_BYTES + 1`), VTT parsing via `parse_vtt(content)` and DOCX parsing via `parse_docx(data)`, title/date defaults ("Vergadering mm jj jj"), `Job` creation with `kind="summary"`, `status="queued"`, 303 redirect on success. Returns 422 with Dutch error messages for: bad extension, too-large file, unparseable content, bad date format.
+- Updated `backend/app/templates/meetings.html`: added `<span class="error">` rendering for validation errors, added missing `name="meeting_date"` attribute, added `value="{{ title or '' }}"` on title input, `GET` handler now passes `errors` and `title` context.
+- Fixed `file.filename` mypy issue (str | None → local variable assignment).
+- Added `UnicodeDecodeError` to the transcript parse exception handler (catches non-UTF-8 VTT files).
+- Created `backend/tests/test_page_meetings_upload.py` (15 tests): form rendering, login requirement, VTT upload → queued job, DOCX same output as VTT, uppercase extension, title/date defaults, title trimming, txt refused, no extension refused, empty VTT refused, non-UTF-8 VTT refused, broken DOCX refused, bad date refused, too-large refused, exactly-at-limit accepted.
+- All 403 tests pass, 92% coverage, `make check` exit 0.
+
+## T25
+- Implemented job list on `/meetings` (SPEC 7.3): `GET` handler loads `Job` rows filtered by `kind="summary"`, ordered by id desc, passing `jobs` and `STATUS_LABELS` to templates.
+- Created `backend/app/templates/_jobs.html`: renders job table with title, `datum_kort(meeting_date)`, Dutch status label (queued→"in de wachtrij", running→"bezig", done→"klaar", failed→"mislukt"), and error message for failed jobs; shows empty state "Nog geen vergaderingen." when no jobs exist.
+- Updated `backend/app/templates/meetings.html` to include `_jobs.html` partial.
+- Registered `datum_kort` filter on `_meeting_env` in `backend/app/meetings.py`; added `STATUS_LABELS` mapping.
+- All 10 filtered job list tests pass (`-k "not model and not partial and not poll"`); `make check` exit 0, 92% coverage.
+- Gotcha: `_meeting_env` is isolated from `web.py`'s Jinja env — any new filters needed on meetings pages must be explicitly registered there.
+
+## T26
+- Implemented model state display and HTMX polling on `/meetings` (SPEC 7.3).
+- Added `GET /meetings/partial` route (declared before `/meetings` to avoid route conflict) returning only `_jobs.html` fragment for HTMX `outerHTML` swap.
+- Created `_model_state_string(ms)` helper in `backend/app/meetings.py`: reads `AppState` row with key `model_status`, returns "model bereikbaar" when `up=True`, or "model offline (pc slaapt of is gepauzeerd), laatst gezien <datum_kort> <HH:MM>" with UTC→Amsterdam conversion when `up=False` and `last_up_at` is set.
+- `GET /meetings` now queries `AppState`, computes `model_state`, filters jobs by `kind="summary"`, passes to `_jobs.html`.
+- `_jobs.html` wraps jobs table in `<div class="jobs-wrapper">` with conditional HTMX polling attributes (`hx-get="/meetings/partial"`, `hx-trigger="every 10s"`, `hx-swap="outerHTML"`) only when `has_pending` is true.
+- All 19 tests pass (`make check` exit 0). Gotcha: use `ZoneInfo(TIMEZONE)` not `TIMEZONE` string directly for `astimezone()`; `_model_state_string` handles `ms=None` for the "nog nooit gezien" case.
+
+## T27
+- Created `backend/app/llm.py`: `LlmError` exception, `get_llm_client()` (returns httpx.Client with Bearer auth + timeout), `is_up()` (GET /models with 5s timeout, returns bool), and `chat_json(messages, schema, client)` (POST /chat/completions with model name, `chat_template_kwargs.enable_thinking=false`, `response_format.type="json_schema"`, parses JSON response, raises `LlmError` on HTTP errors, bad JSON, or wrong shape).
+- Created `backend/tests/test_llm.py` (17 tests): covers `is_up` (200→True, 404→False, timeout→False, connect error→False, no-client close path) and `chat_json` (request body structure with model name/enable_thinking/json_schema/bearer header/messages/params, response parsing, LlmError on bad JSON/missing choices/empty choices/missing message/HTTP 500/HTTP 401).
+- Used `httpx.MockTransport` with `base_url="http://127.0.0.1"` for all test clients to avoid URL resolution issues.
+- All 454 tests pass, 94% coverage, `make check` exit 0. Gotcha: mypy `no-any-return` requires `# type: ignore[no-any-return]` on `json.loads()` return; ruff B904 requires `from None` on raises inside except blocks.
+
+## T28
+- Created `backend/app/summarize.py`: `SummaryError` exception, `Summary` pydantic model (fields: summary, decisions, action_items, open_questions), `summarize(transcript, client)` function. Dutch system prompt instructs note-taking behavior; user message is the raw transcript. Calls `chat_json(messages, schema, client)` where schema is derived from `MeetingSummary.model_json_schema()`. Retries once when `chat_json` raises `LlmError` (bad output); raises `SummaryError("Summarization failed after 2 attempts")` after both attempts fail.
+- Created `backend/tests/test_summarize.py` (3 tests): `test_summarize_short_transcript_makes_one_call` (fake response, verifies 1 call + request structure), `test_summarize_invalid_then_valid_succeeds` (first call returns non-JSON → retry succeeds), `test_summarize_invalid_twice_raises_summary_error` (both calls invalid → SummaryError after 2 calls).
+- All 457 tests pass, 94% coverage, `make check` exit 0. Next task T29 should implement the worker (`app/worker.py`) that queries `Job` rows with `SKIP LOCKED` and calls `summarize()`.
+
+## T29
+- Implemented transcript chunking in `backend/app/summarize.py` per SPEC 7.6: when `len(transcript) > SUMMARY_CHUNK_CHARS`, the text is split at `\n` turn boundaries into chunks. Each chunk is summarised via `_single_call`, partial results are merged by `_merge_results()` using a dedicated `_MERGE_SYSTEM_PROMPT`, and the final JSON is returned. `SUMMARY_CHUNK_CHARS` reads from config (default 40 000).
+- Created `backend/tests/test_summarize_chunks.py` (4 tests): verifies correct chunk call count, strict chunk size enforcement, splitting at turn boundaries (trailing `\n` preserved), and merge input shape. Turn lengths in tests set to ~35–42 chars so exactly 2 turns fit per 100-char chunk limit (3 chunks total).
+- All 461 tests pass, >94% coverage, `make check` exit 0. Next task T30 should implement the worker (`app/worker.py`) that queries `Job` rows with `SKIP LOCKED` and calls `summarize()`.
+
+## T30
+- Created `backend/app/worker.py`: `run_once(session, now, llm_client, teams_client) -> str` claims one queued job with `with_for_update(skip_locked=True)`, calls `summarize()`, stores result and clears transcript on success (returns `"done"`), sets back to `queued` with error on failure (returns `"retry"`), and permanently fails at 3 attempts with Dutch message "Samenvatting mislukt na 3 pogingen" (returns `"failed"`). Returns `"idle"` when no job available. Added guard for `transcript is None`.
+- Created `backend/tests/test_worker.py` (7 tests): covers idle state, successful result storage, single failure/retry, three-attempt permanent failure, transcript clearing, attempts increment, and started_at set. All mock `summarize` calls.
+- Coverage: worker.py 97%, total 94% (≥90% met). `make check` exit 0.
+- Note: Task specifies "without the model check" — no `is_up()` health check in `run_once`. Auto-post to Teams and model status tracking in `app_state` are deferred to later tasks. Next task should wire the `main()` loop and cron tick integration.
+
+## T31
+- Updated `backend/app/worker.py`: `run_once` now checks `llm.is_up()` before claiming, stores `model_status` (`{"up", "checked_at", "last_up_at"}`) in `app_state`, returns `"model_offline"` when down (job stays queued), and returns `"done"`/`"retry"`/`"failed"`/`"idle"` as before. Added `reset_stuck(session, now)` which resets jobs `running` > 30 min back to `queued` (clears `started_at`). Added `main()` loop: calls `reset_stuck` once, then loops `run_once` with 60 s sleep after `idle`/`model_offline`.
+- Added `_patch_worker_is_up` autouse fixture to `backend/tests/conftest.py` that patches `app.worker.is_up` → `True` so existing `test_worker.py` tests continue to pass.
+- Created `backend/tests/test_worker_model.py` (6 tests): model down → queued + status stored (2 tests), model up → `last_up_at` updated + job done (1 test), 31 min stuck reset (1 test), 29 min not reset (1 test), no stuck jobs no-op (1 test).
+- All 474 tests pass, 94% coverage, `make check` exit 0.
+
+## T32
+- Added `summary_card(job)` to `backend/app/cards.py`: pure function returning AdaptiveCard 1.4 content dict with title ("Samenvatting: <titel> (<datum_kort>)"), summary section, optional decisions/action_items/open_questions sections (empty lists omitted), Dutch action item format ("owner: taak (due)"), and subtle footer ("Gemaakt door het lokale taalmodel; controleer de actiepunten."). Uses `datum_kort()` for Dutch date formatting. Added `TYPE_CHECKING` import for `Job` type hint.
+- Created `backend/tests/test_summary_card.py` (26 tests): covers title+date, dateless title, summary text, summary wrap, action items with all owner/due combos, decisions, open questions, empty-list omission, heading bold+small, footer text/style, JSON serializability, and body index correctness.
+- All 500 tests pass, 94% coverage, `make check` exit 0.
+
+## T33
+- Modified `backend/app/worker.py`: added `logger` import, auto-post logic in the success path — when `summary_auto_post` setting is `"true"`, calls `send_once(kind="summary", ref_key=f"summary:{job.id}")` with `summary_card(job)`. On `"sent"` status, sets `job.posted_at`. Teams failures are caught, logged via `logger.exception`, and do not break the done state.
+- Created `backend/tests/test_summary_autopost.py` (6 tests): ON → posted once + posted_at set + PostLog "sent"; ON → idempotent (second run returns idle, only 1 PostLog); OFF → nothing posted, no PostLog; retryable failure (503) → done + posted_at None + PostLog "retryable"; permanent failure (401) → done + posted_at None + PostLog "permanent"; connection exception → done + posted_at None.
+- Gotcha: `app.teams.get_settings()` uses `@lru_cache`; test fixture clears the cache via `get_settings.cache_clear()` and sets `TEAMS_WEBHOOK_URL` via `monkeypatch.setenv` so `send_once` proceeds with the mock HTTP client instead of returning "dry_run".
+- All 506 tests pass, >94% coverage, `make check` exit 0.
+
+## T34
+- Implemented `GET /meetings/{job_id}` route in `app/meetings.py`: loads job (404 if missing), queries `AppState` and auto_post setting, renders `meeting_detail.html`.
+- Implemented `POST /meetings/{job_id}/post`: calls `summary_card(job)` + `send_once()`, sets `job.posted_at` on `"sent"` or `"dry_run"` status, returns 303 redirect.
+- Created `app/templates/meeting_detail.html`: extends `base.html`, shows status badge, posted date, summary body (summary, decisions, action items, open questions), and conditional "Post naar Teams" form.
+- Created `tests/test_page_meeting_detail.py` (11 tests): 404, status rendering, summary content rendering, form visibility/fields, post form submission with redirect and `posted_at` update.
+- All 517 tests pass, 94% coverage, `make check` exit 0. Gotcha: `Job.result` holds the JSON summary (not `summary_result`); `send_once` returns `"dry_run"` in test env so `posted_at` must be set for both `"sent"` and `"dry_run"`.
+
+## T35
+- Modified `backend/app/worker.py`: added optional PC wake mechanism (SPEC 7.9) — when `WAKER_URL` and `WAKER_TOKEN` are set, model is unreachable, and queued jobs exist, POSTs to `{WAKER_URL}/wake` with `X-Waker-Token` header. Stores last wake timestamp in `app_state` key `last_wake`. Cooldown enforced at 30 minutes via `WAKE_COOLDOWN`. Waker 500 errors are caught by `except Exception` and do not crash.
+- Created `backend/tests/test_waker.py` (7 tests): unconfigured (no URL/no token), configured triggers POST with token, cooldown enforced (<30 min), cooldown expired (>31 min), waker 500 no crash, `run_once` triggers wake when model offline. All 524 tests pass, 94% coverage, `make check` exit 0.
+
+## T36
+- Created `backend/app/retention.py`: `apply_retention(session, now) -> list[str]` implementing all 5 retention rules from SPEC 8.1-8.2 — (1) clear transcripts of done jobs, (2) delete failed jobs >7 days old, (3) delete summary jobs with non-null result >180 days, (4) delete deadlines >60 days from due_date, (5) delete sent post-log rows >180 days. Returns log strings describing deletions.
+- Updated `backend/app/tick.py`: imports `apply_retention` and calls it in `run_tick()`, extending the log output.
+- Created `backend/tests/test_retention.py` (15 tests): covers all retention rules individually and combined (5 done job transcript clearing, 5 old summary deletion, 5 old deadline deletion, old failed job deletion, old post-log deletion, summary without result preserved, recent jobs preserved, integration test for all rules together).
+- Gotcha: PostgreSQL's SQLAlchemy `JSON` type uses `none_as_null=False` by default, storing Python `None` as JSON `null` (not SQL NULL). The summary retention query uses `cast(Job.result, String) != "null"` alongside `Job.result.isnot(None)` to correctly exclude both SQL NULL and JSON `null` values. The deadline cutoff must be cast to `.date()` to avoid comparing `datetime` to `SQLDate`. `get_settings.cache_clear()` must be called before `apply_retention` in tests to pick up monkeypatched env vars.
+- All 539 tests pass, 94% coverage, `make check` exit 0.
+
+## T37
+- Added `@router.post("/meetings/{job_id}/delete")` route in `backend/app/meetings.py` (SPEC 8.3): loads job (404 if missing), deletes from DB, commits, returns 303 to `/meetings`.
+- Added delete button to `backend/app/templates/meeting_detail.html`: inline form with `POST /meetings/{job_id}/delete`, Dutch label "Verwijderen", no inline JS.
+- Created `backend/tests/test_meeting_delete.py` (10 tests): covers redirect, 404 on unknown ID, deletion across statuses (done/queued/failed/running), removal from list, delete button visibility on detail page, and delete via detail form.
+- Gotcha: SQLAlchemy identity map caches pre-delete objects in the test session. All `db.get(Job, id) is None` assertions replaced with `db.execute(select(Job).where(Job.id == id)).scalar_one_or_none() is None` to bypass identity map and verify actual DB deletion.
+- All 549 tests pass, 94% coverage, `make check` exit 0.
+
+## T39
+- Created `backend/app/templates/index.html`: Dutch overview page with independent empty-state sections for deadlines, meetings/jobs, and model state.
+- Updated `backend/app/web.py` `index` route: queries `Deadline` (today+future, sorted), `Job` (kind="summary", ordered by id DESC, limited 3), and `AppState` (model_status), passes to template.
+- Removed empty-state conditional from `backend/app/templates/base.html` (per SPEC §5.1: "no hidden global empty-state logic").
+- Registered `datum_kort` as a Jinja2 filter in `web.py`'s `_jinja_env` (missing registration caused filter to output nothing in templates).
+- Created `backend/tests/test_page_home.py` (12 tests): renders, auth required, deadlines list, jobs list, model state, empty states, `aria-current`, nav link active.
+- Fixed `backend/tests/test_base_template.py::auth_client`: added `db` fixture dependency — without it, tests hitting `/` tried a real Postgres connection (`ModuleNotFoundError: No module named 'psycopg2'`).
+- Fixed `backend/tests/test_auth.py`: added `db` dependency to `test_success_with_valid_credentials`, `test_11th_failure_returns_429`, and `test_rate_limit_per_ip` (same psycopg2 issue — these tests log in and hit `/`).
+- All 581 tests pass, 94% coverage, `make check` exit 0.
+- Note: `datum_kort` must be registered on every isolated Jinja2 Environment that renders deadline/job/model data (web.py, meetings.py, _jinja_env).
+
+## T40
+- Created `backend/scripts/dev.py`: bootstrap script starting pgserver, running alembic upgrade, seeding 4 deadlines + 1 finished summary job, launching FastAPI fake LLM on port 18080, and running uvicorn on :8000.
+- Created `backend/tests/test_dev_seed.py` (11 tests): verifies deadline count, dates, sources, job result JSON, and seed idempotency via truncation. Tests depend on `db` fixture for session-scoped isolation.
+- Fixed `_seed()` to use SQLAlchemy 2.0 `table()`/`column()` instead of `text()` for DML, and `json.dumps()` for PostgreSQL JSON columns.
+- All 592 tests pass, 94% coverage, `make check` exit 0.
+
+## T41
+- Created `backend/scripts/next_version.py`: stdlib-only script that computes the next semver version. Takes optional `tags` and `commit_messages` parameters for testability; defaults to querying git via `subprocess`. Returns `v0.1.0` when no semver tags exist, bumps patch by default, `[minor]` resets patch, `[major]` resets minor+patch. Non-semver tags are ignored.
+- Created `backend/tests/test_next_version.py` (9 tests): no tags → v0.1.0, non-semver tags ignored, patch bump, minor bump, major bump, major precedence over minor, latest semver tag selection, mixed tags with valid semver, major reset of minor+patch.
+- Gotcha: Bandit S603/S607 warnings on subprocess calls require `# noqa` comments — one per line matching the existing pattern (`# noqa: S603` on `subprocess.run`, `# noqa: S607` on the array argument).
+- All 601 tests pass, 94% coverage, `make check` exit 0.

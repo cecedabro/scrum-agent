@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import datetime
 from datetime import date
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from app.fmt import datum, datum_kort
+
+if TYPE_CHECKING:
+    from app.models import Job
 
 _Dict = dict[str, object]
 
@@ -116,6 +119,130 @@ def deadline_reminder(deadline: dict[str, object], days: int) -> _Dict:
     ]
     if note:
         body.append({"type": "TextBlock", "text": note, "wrap": True})
+
+    return {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "body": body,
+    }
+
+
+def summary_card(job: Job) -> _Dict:
+    """Summary card for a finished meeting job (SPEC 7.8).
+
+    Pure function — no I/O.  Takes a ``Job`` object and returns the
+    card content dict (AdaptiveCard 1.4).
+    """
+    result = job.result or {}
+    title = job.title
+    meeting_date = job.meeting_date
+    date_str = datum_kort(meeting_date) if meeting_date else ""
+    date_part = f" ({date_str})" if date_str else ""
+    title_text = f"Samenvatting: {title}{date_part}"
+
+    summary_text = result.get("summary", "") or ""
+    decisions = result.get("decisions", []) or []
+    action_items = result.get("action_items", []) or []
+    open_questions = result.get("open_questions", []) or []
+
+    body: list[_Dict] = [
+        {
+            "type": "TextBlock",
+            "text": title_text,
+            "weight": "Bolder",
+            "size": "Medium",
+            "wrap": True,
+        },
+    ]
+
+    if summary_text:
+        body.append(
+            {
+                "type": "TextBlock",
+                "text": summary_text,
+                "wrap": True,
+            }
+        )
+
+    if decisions:
+        body.append(
+            {
+                "type": "TextBlock",
+                "text": "Besluiten",
+                "weight": "Bolder",
+                "size": "Small",
+                "wrap": True,
+            }
+        )
+        for d in decisions:
+            body.append(
+                {
+                    "type": "TextBlock",
+                    "text": f"- {d}",
+                    "wrap": True,
+                }
+            )
+
+    if action_items:
+        body.append(
+            {
+                "type": "TextBlock",
+                "text": "Actiepunten",
+                "weight": "Bolder",
+                "size": "Small",
+                "wrap": True,
+            }
+        )
+        for item in action_items:
+            owner = item.get("owner") or "—"
+            task = item.get("task", "")
+            due = item.get("due")
+            if due:
+                body.append(
+                    {
+                        "type": "TextBlock",
+                        "text": f"- {owner}: {task} ({due})",
+                        "wrap": True,
+                    }
+                )
+            else:
+                body.append(
+                    {
+                        "type": "TextBlock",
+                        "text": f"- {owner}: {task}",
+                        "wrap": True,
+                    }
+                )
+
+    if open_questions:
+        body.append(
+            {
+                "type": "TextBlock",
+                "text": "Open vragen",
+                "weight": "Bolder",
+                "size": "Small",
+                "wrap": True,
+            }
+        )
+        for q in open_questions:
+            body.append(
+                {
+                    "type": "TextBlock",
+                    "text": f"- {q}",
+                    "wrap": True,
+                }
+            )
+
+    body.append(
+        {
+            "type": "TextBlock",
+            "text": "Gemaakt door het lokale taalmodel; controleer de actiepunten.",
+            "size": "Small",
+            "isSubtle": True,
+            "wrap": True,
+        }
+    )
 
     return {
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
