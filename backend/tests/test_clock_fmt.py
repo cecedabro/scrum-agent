@@ -202,5 +202,5 @@ def test_relatief_yesterday_from_past() -> None:
 
 
 def test_relatief_defaults_to_real_clock() -> None:
-    today = date.today()
+    today = today_local()  # Amsterdam's today, not the container's (UTC) date
     assert relatief(today) == "vandaag"

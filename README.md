@@ -40,7 +40,7 @@ copied from the devbox secret) and `secret/scrum-agent/db`. Later, to replace on
 webhook: `scripts/store-secrets.sh webhook`. Share the team password with teammates in a
 private Teams chat, not in the channel.
 
-### 3. `@Agent` in Teams (phase 3, after T42 and once the site is online)
+### 3. `@Agent` in Teams (phase 3, after T50 and once the site is online)
 A team owner: team **⋯ → Manage team → Apps → "Create an outgoing webhook"**. Name `Agent`,
 callback URL `https://scrum.cedricschippers.dev/teams/outgoing`. Teams shows a security token
 once: don't paste it anywhere except here:
@@ -59,7 +59,7 @@ Access policy (email one-time PIN for the team's addresses) in front of the pass
 
 ## Let the local agent build it
 One time: add `cecedabro/scrum-agent` to the devbox's fine-grained GitHub token
-(Contents, Pull requests: read/write; Actions: read; Workflows: read/write for T34).
+(Contents, Pull requests: read/write; Actions: read; Workflows: read/write for T42).
 Then on the devbox (`ssh agent@devbox`):
 ```bash
 git clone https://github.com/cecedabro/scrum-agent ~/repos/scrum-agent
