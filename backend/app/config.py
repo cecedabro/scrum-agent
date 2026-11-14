@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     SUMMARY_RETENTION_DAYS: int = 180
     DEADLINE_RETENTION_DAYS: int = 60
     POST_LOG_RETENTION_DAYS: int = 180
+    QUESTION_RETENTION_DAYS: int = 30
 
 
 class ConfigError(RuntimeError):

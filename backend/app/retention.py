@@ -23,6 +23,7 @@ def apply_retention(session: Session, now: datetime.datetime) -> list[str]:
     - Clear transcripts of completed jobs (SPEC 8.1).
     - Delete transcripts of failed jobs older than 7 days (SPEC 8.1).
     - Delete summary Jobs older than SUMMARY_RETENTION_DAYS (SPEC 8.2).
+    - Delete question Jobs older than QUESTION_RETENTION_DAYS (SPEC 10.6).
     - Delete deadlines older than DEADLINE_RETENTION_DAYS from their date (SPEC 8.2).
     - Delete post-log rows older than POST_LOG_RETENTION_DAYS (SPEC 8.2).
 
@@ -70,6 +71,18 @@ def apply_retention(session: Session, now: datetime.datetime) -> list[str]:
     summary_count = old_summaries.rowcount  # type: ignore[attr-defined]
     if summary_count:
         log_lines.append(f"retention deleted {summary_count} old summaries")
+
+    # SPEC 10.6: delete question jobs older than QUESTION_RETENTION_DAYS
+    question_cutoff = now - datetime.timedelta(days=settings.QUESTION_RETENTION_DAYS)
+    old_questions = session.execute(
+        delete(Job).where(
+            Job.kind == "question",
+            Job.created_at <= question_cutoff,
+        )
+    )
+    question_count = old_questions.rowcount  # type: ignore[attr-defined]
+    if question_count:
+        log_lines.append(f"retention deleted {question_count} old question jobs")
 
     # SPEC 8.2: delete deadlines older than DEADLINE_RETENTION_DAYS from due_date
     deadline_cutoff = (now - datetime.timedelta(days=settings.DEADLINE_RETENTION_DAYS)).date()
