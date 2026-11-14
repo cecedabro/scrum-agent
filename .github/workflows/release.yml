@@ -1,0 +1,85 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency: release
+
+jobs:
+  migrations:
+    uses: ./.github/workflows/migrations.yml
+
+  release:
+    needs: migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip on [skip release]
+        id: skip
+        run: |
+          if git log -1 --format=%s | grep -q '\[skip release\]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.skip.outputs.skip == 'false'
+        with:
+          python-version: "3.11"
+
+      - uses: astral-sh/setup-uv@v6
+        if: steps.skip.outputs.skip == 'false'
+
+      - if: steps.skip.outputs.skip == 'false'
+        run: make setup
+
+      - if: steps.skip.outputs.skip == 'false'
+        run: make check
+
+      - name: Compute version
+        if: steps.skip.outputs.skip == 'false'
+        id: version
+        run: |
+          COMMIT_MSGS=$(git log -50 --format=%s)
+          ARGS=()
+          while IFS= read -r msg; do
+            ARGS+=("$msg")
+          done <<< "$COMMIT_MSGS"
+          echo "tag=$(cd backend && uv run python -m scripts.next_version --commit-messages "${ARGS[@]}")" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        if: steps.skip.outputs.skip == 'false'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.skip.outputs.skip == 'false'
+
+      - uses: docker/build-push-action@v6
+        if: steps.skip.outputs.skip == 'false'
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.actor }}/scrum-agent:${{ steps.version.outputs.tag }}
+            ghcr.io/${{ github.actor }}/scrum-agent:sha-${{ github.sha }}
+
+      - name: Create and push tag
+        if: steps.skip.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"

@@ -1,5 +1,6 @@
 """Settings from environment variables (SPEC 1.3). Safe defaults for local tests."""
 
+import base64
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
     # Teams Workflows webhook. Empty = dry run (posts are recorded, not sent).
     TEAMS_WEBHOOK_URL: str = ""
 
+    # Outgoing webhook HMAC secret (base64). Empty = feature off.
+    TEAMS_HMAC_SECRET: str = ""
+
     # Local model (OpenAI-compatible llama-server on the PC).
     LLM_BASE_URL: str = "http://localhost:8080/v1"
     LLM_API_KEY: str = ""
@@ -35,6 +39,7 @@ class Settings(BaseSettings):
     SUMMARY_RETENTION_DAYS: int = 180
     DEADLINE_RETENTION_DAYS: int = 60
     POST_LOG_RETENTION_DAYS: int = 180
+    QUESTION_RETENTION_DAYS: int = 30
 
 
 class ConfigError(RuntimeError):
@@ -49,6 +54,11 @@ def check_production(s: Settings) -> None:
         raise ConfigError("TEAM_PASSWORD must be set to a real password (12+ chars) in production")
     if s.TEAMS_WEBHOOK_URL and not s.TEAMS_WEBHOOK_URL.startswith("https://"):
         raise ConfigError("TEAMS_WEBHOOK_URL must be an https:// URL")
+    if s.TEAMS_HMAC_SECRET:
+        try:
+            base64.b64decode(s.TEAMS_HMAC_SECRET, validate=True)
+        except Exception as err:
+            raise ConfigError("TEAMS_HMAC_SECRET must be valid base64 in production") from err
 
 
 @lru_cache

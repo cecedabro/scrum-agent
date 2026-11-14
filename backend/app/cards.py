@@ -293,3 +293,43 @@ def sprint_nudge(end_date: date, deadlines: list[dict[str, object]]) -> _Dict:
         "version": "1.4",
         "body": body,
     }
+
+
+def question_card(question: str, answer: str) -> _Dict:
+    """Question/answer card posted to Teams (TASK T49).
+
+    Pure function — no I/O. Takes a question and answer, returns the
+    card content dict (AdaptiveCard 1.4).
+    """
+    return {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "body": [
+            {
+                "type": "TextBlock",
+                "text": "Vraag & Antwoord",
+                "weight": "Bolder",
+                "size": "Medium",
+                "wrap": True,
+            },
+            {
+                "type": "TextBlock",
+                "text": question,
+                "weight": "Bolder",
+                "wrap": True,
+            },
+            {
+                "type": "TextBlock",
+                "text": answer,
+                "wrap": True,
+            },
+            {
+                "type": "TextBlock",
+                "text": "Gemaakt door het lokale taalmodel; controleer het antwoord.",
+                "size": "Small",
+                "isSubtle": True,
+                "wrap": True,
+            },
+        ],
+    }

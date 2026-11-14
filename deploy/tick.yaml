@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scrum-agent-tick
+  namespace: scrum-agent
+spec:
+  schedule: "*/10 * * * *"
+  timeZone: Europe/Amsterdam
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: scrum-agent-tick
+        spec:
+          automountServiceAccountToken: false
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: NotIn
+                        values:
+                          - k3s-gpu-01
+          containers:
+            - name: tick
+              image: ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}
+              command:
+                - python
+                - -m
+                - app.tick
+              envFrom:
+                - secretRef:
+                    name: scrum-agent-app
+              env:
+                - name: APP_ENV
+                  value: production
+                - name: LLM_BASE_URL
+                  value: http://192.168.50.17:8080/v1
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 10001
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 96Mi
+                limits:
+                  memory: 192Mi
+          volumes:
+            - name: tmp
+              emptyDir: {}
+          restartPolicy: OnFailure

@@ -239,3 +239,30 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_next_version.py` (9 tests): no tags → v0.1.0, non-semver tags ignored, patch bump, minor bump, major bump, major precedence over minor, latest semver tag selection, mixed tags with valid semver, major reset of minor+patch.
 - Gotcha: Bandit S603/S607 warnings on subprocess calls require `# noqa` comments — one per line matching the existing pattern (`# noqa: S603` on `subprocess.run`, `# noqa: S607` on the array argument).
 - All 601 tests pass, 94% coverage, `make check` exit 0.
+
+## T42
+- Created `.github/workflows/release.yml` (SPEC 9.3): trigger `push: branches: [main]`; permissions `contents: write, packages: write`; concurrency group `release` (no cancel-in-progress); first job `migrations` calls `migrations.yml` via `uses`; second job `release` (needs: migrations) does full-history checkout (`fetch-depth: 0`), checks for `[skip release]` in HEAD commit message, runs `make setup && make check`, computes version via `next_version.py` passing commit messages as bash array args, logs into ghcr.io, builds and pushes Docker image with `:X.Y.Z` and `:sha-<short>` tags via `build-push-action@v6`, creates and pushes annotated git tag. All steps gated by `if: steps.skip.outputs.skip == 'false'`.
+- Gotcha: `next_version.py` commit messages must be passed as separate bash array elements (`"${ARGS[@]}"`) to preserve spaces in messages; SC2086 suppressed by using array syntax instead of unquoted variable expansion.
+- `actionlint` exit 0, `make check` exit 0.
+
+## T43
+- Created `deploy/Makefile`: `validate` target runs `kustomize build . | kubeconform -strict -summary`.
+- Created `deploy/kustomization.yaml`: namespace `scrum-agent`, lists `namespace.yaml` and `app.yaml`.
+- Created `deploy/namespace.yaml`: Namespace `scrum-agent`.
+- Created `deploy/app.yaml`: web Deployment `scrum-agent` (1 replica, `Recreate`, port 8000), Service `scrum-agent` (port 80→8000), initContainers `wait-for-db` (busybox + nc) and `migrate` (alembic upgrade head). Security: runAsNonRoot uid 10001, readOnlyRootFilesystem, drop ALL, seccomp RuntimeDefault, emptyDir /tmp, automountServiceAccountToken false. Node affinity excludes `k3s-gpu-01`. Resources 25m/128Mi request, 256Mi limit. Liveness `/healthz`, readiness `/readyz`. Image tag `0.1.0` with flux `$imagepolicy` marker. Both containers and migrate get `envFrom` secret + plain env vars (APP_ENV, LLM_BASE_URL, TEAM_USER). `make -C deploy validate` passes (3 resources valid), `make check` exit 0. Next task T44: worker.yaml, tick.yaml, postgres.yaml, secret.example.yaml, README.md.
+
+## T44
+- Created `deploy/worker.yaml`: Deployment `scrum-agent-worker` (1 replica, `Recreate`, `command: ["python", "-m", "app.worker"]`, no Service, no probes), same security/context/node-affinity as web, resources 10m/96Mi request, 192Mi limit, `envFrom` secret + plain `APP_ENV`/`LLM_BASE_URL`.
+- Created `deploy/tick.yaml`: CronJob `scrum-agent-tick`, `*/10 * * * *`, `timeZone: Europe/Amsterdam`, `concurrencyPolicy: Forbid`, `startingDeadlineSeconds: 300`, `backoffLimit: 0`, history limits 3/3. Same security/resources as worker.
+- Created `deploy/postgres.yaml`: StatefulSet `scrum-agent-db` (postgres:16.10), Service `scrum-agent-db:5432`, `PGDATA=/var/lib/postgresql/data/pgdata`, 2Gi `longhorn` PVC, fsGroup 999, resources 50m/256Mi request, 512Mi limit.
+- Created `deploy/secret.example.yaml`: both Secrets (`scrum-agent-app` and `scrum-agent-db`) with `REPLACE_ME` values; NOT in kustomization.
+- Created `deploy/README.md`: egress needs (PC 192.168.50.17:8080, waker 192.168.50.11:9009, Teams HTTPS), OpenBao paths `secret/scrum-agent/app` and `secret/scrum-agent/db`, rollback instructions.
+- Updated `deploy/kustomization.yaml`: added `worker.yaml`, `tick.yaml`, `postgres.yaml` to resources.
+- Gotcha: `backoffLimit` must be at `spec/jobTemplate/spec/backoffLimit`, not `spec/backoffLimit` (kubeconform strict validation).
+- `make -C deploy validate` passes (7 resources valid), `make check` exit 0.
+
+## T46
+- Created `backend/app/answers.py`: `quick_answer(text, today, deadlines, sprint_end) -> str | None` (SPEC 10.3). Recognises help (empty/help/hulp), sprint, and deadline queries (upcoming + "this week" with Monday→Sunday bounds). Dutch formatting via `datum_kort()` and `relatief()`. 10-line cap with "… en N meer". Returns `None` for unrecognised input (SPEC 10.4).
+- Created `backend/tests/test_answers.py` (20 tests): covers help/hulp/HULP, "wat zijn de deadlines?", "deadlines deze week" on Monday & Sunday, 10-line cap, empty deadlines, sprint on/off, lines with/without time, past deadlines excluded, `None` fallback, format checks (datum_kort, time, relatief labels).
+- All 635 tests pass, 94% total coverage, `make check` exit 0.
+- Gotcha: deadline dicts passed to `quick_answer` do not include `datum_kort` — the function calls `datum_kort(d["due_date"])` directly. The `typing.Any` import is required for `list[dict[str, Any]]` to satisfy mypy.

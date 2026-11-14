@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrum-agent-worker
+  namespace: scrum-agent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: scrum-agent-worker
+  template:
+    metadata:
+      labels:
+        app: scrum-agent-worker
+    spec:
+      automountServiceAccountToken: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - k3s-gpu-01
+      containers:
+        - name: worker
+          image: ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}
+          command:
+            - python
+            - -m
+            - app.worker
+          envFrom:
+            - secretRef:
+                name: scrum-agent-app
+          env:
+            - name: APP_ENV
+              value: production
+            - name: LLM_BASE_URL
+              value: http://192.168.50.17:8080/v1
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 10m
+              memory: 96Mi
+            limits:
+              memory: 192Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
