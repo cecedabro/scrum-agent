@@ -35,8 +35,9 @@ shows none of them):
 ```bash
 scripts/store-secrets.sh init
 ```
-It writes `secret/scrum-agent/app` (`TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, `LLM_API_KEY`,
-copied from the devbox secret) and `secret/scrum-agent/db`. Later, to replace only the
+It writes `secret/scrum-agent/app` (`TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, an empty
+`TEAMS_HMAC_SECRET`) and `secret/scrum-agent/db`. The model API key and the waker token are
+read straight from the ai-agent secrets by the cluster. Later, to replace only the
 webhook: `scripts/store-secrets.sh webhook`. Share the team password with teammates in a
 private Teams chat, not in the channel.
 
@@ -47,15 +48,17 @@ once: don't paste it anywhere except here:
 ```bash
 scripts/store-secrets.sh hmac
 ```
-Then `@Agent wat zijn de deadlines?` in a channel of that team. If you put Cloudflare Access
-in front of the site, add a bypass for the path `/teams/outgoing` (Teams can't log in; the
-HMAC check protects that path).
+Then `@Agent wat zijn de deadlines?` in a channel of that team. Don't put Cloudflare Access
+in front of `/teams/outgoing` (Teams can't log in; the HMAC check protects that path).
 
-### 4. Cluster and hostname (after the `deploy/` tasks are done)
-The homelab chat copies `deploy/` into `~/homelab/apps/scrum-agent/` and adds the
-ExternalSecrets and the NetworkPolicy. Then add `scrum.cedricschippers.dev` → Service
-`scrum-agent.scrum-agent:80` in the Cloudflare tunnel. Optional extra lock: a Cloudflare
-Access policy (email one-time PIN for the team's addresses) in front of the password.
+### 4. Cluster and hostname
+1. The homelab chat copies `deploy/` into `~/homelab/apps/scrum-agent/` and adds the Flux
+   image automation and the NetworkPolicy (after your OK).
+2. After the first release (merge to `main`): GitHub → your profile → Packages →
+   `scrum-agent` → Package settings → Change visibility → **Public** (the cluster pulls
+   without credentials).
+3. Cloudflare dashboard → Zero Trust → Networks → Tunnels → your tunnel → Public hostname:
+   `scrum.cedricschippers.dev` → `http://scrum-agent.scrum-agent.svc.cluster.local:80`.
 
 ## Let the local agent build it
 One time: add `cecedabro/scrum-agent` to the devbox's fine-grained GitHub token

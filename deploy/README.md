@@ -4,37 +4,42 @@ Kustomize manifests for the scrum-agent on a k3s homelab.
 
 ## Overview
 
+The homelab copies the plain manifests into `apps/scrum-agent/` (one Flux GitRepository, the
+homelab repo) and lists them in its `apps/kustomization.yaml`. `kustomization.yaml` and
+`Makefile` here are only for `make validate`.
+
 ```
-deploy/
-  Makefile             # validate: kustomize build . | kubeconform -strict -summary
-  kustomization.yaml   # namespace: scrum-agent; lists namespace.yaml and app.yaml
-  namespace.yaml
-  app.yaml             # web Deployment + Service
-  worker.yaml          # worker Deployment
-  tick.yaml            # CronJob (every 10 min)
-  postgres.yaml        # StatefulSet + Service + PVC
-  secret.example.yaml  # Secret templates with REPLACE_ME values (not in kustomization)
-  README.md            # this file
+namespace.yaml       # Pod Security restricted
+app.yaml             # web Deployment + Service scrum-agent:80 -> 8000
+worker.yaml          # worker Deployment
+tick.yaml            # CronJob every 10 min
+postgres.yaml        # StatefulSet + Service + 5Gi longhorn PVC
+externalsecret.yaml  # Secrets scrum-agent-app and scrum-agent-db from OpenBao
 ```
 
-## Secrets
+## Secrets (OpenBao, ClusterSecretStore `openbao`)
 
-Both Secrets are **not** in the kustomization. In production they are created by the homelab
-side (OpenBao + ExternalSecrets). The OpenBao paths are:
+Filled by Cédric with `scripts/store-secrets.sh init`:
+- `secret/scrum-agent/app`: `TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, `TEAMS_HMAC_SECRET` (empty
+  until `@Agent` is set up; empty = `/teams/outgoing` answers 503)
+- `secret/scrum-agent/db`: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 
-- `secret/scrum-agent/app` — keys: `DATABASE_URL`, `TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`,
-  `LLM_API_KEY`, `TEAMS_HMAC_SECRET`
-- `secret/scrum-agent/db` — keys: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
-
-See `secret.example.yaml` for the full key list with placeholder values.
+Reused from the ai-agent secrets (not copied): `ai-agent/devbox` `LLAMA_API_KEY` → `LLM_API_KEY`,
+`ai-agent/waker` `WAKER_TOKEN`. `DATABASE_URL` is composed in the ExternalSecret template.
 
 ## Egress needs
 
-The homelab NetworkPolicy must allow outbound traffic from the `scrum-agent` namespace:
+Default-deny egress, then: DNS; same namespace (Postgres 5432); `192.168.50.17:8080`
+(llama-server, worker); `192.168.50.11:9009` (waker, worker); public TCP 443 (Teams webhook,
+web + worker + tick). Ingress: only the Cloudflare tunnel to the web pod.
 
-- **Worker** → `192.168.50.17:8080` (llama-server / local PC)
-- **Worker** → `192.168.50.11:9009` (waker, when `WAKER_URL` / `WAKER_TOKEN` are set)
-- **Web + Tick** → the Teams webhook URL (`https://` only; the URL is in `TEAMS_WEBHOOK_URL`)
+## Manual steps (Cédric)
+
+1. `scripts/store-secrets.sh init` (OpenBao).
+2. After the first release: make the GHCR package `scrum-agent` public.
+3. Cloudflare dashboard: tunnel route `scrum.cedricschippers.dev` →
+   `http://scrum-agent.scrum-agent.svc.cluster.local:80`. No Cloudflare Access in front of
+   `/teams/outgoing`.
 
 ## Rollback
 
