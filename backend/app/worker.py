@@ -9,6 +9,7 @@ Return values: ``"idle"``, ``"model_offline"``, ``"done"``, ``"retry"``,
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -16,9 +17,14 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.cards import summary_card
 from app.llm import is_up
 from app.models import AppState, Job
+from app.settings import load as load_settings
 from app.summarize import SummaryError, summarize
+from app.teams import send_once
+
+logger = logging.getLogger(__name__)
 
 RUN_STUCK_THRESHOLD = timedelta(minutes=30)
 
@@ -91,6 +97,24 @@ def run_once(
         job.transcript = None
         job.status = "done"
         job.finished_at = now
+
+        # Auto-post summary card (SPEC 7.8).
+        try:
+            settings = load_settings(session)
+            if settings.summary_auto_post:
+                post_status = send_once(
+                    session,
+                    kind="summary",
+                    ref_key=f"summary:{job.id}",
+                    card=summary_card(job),
+                    client=teams_client,
+                    now=now,
+                )
+                if post_status == "sent":
+                    job.posted_at = now
+        except Exception:
+            logger.exception("Auto-post failed for job %s", job.id)
+
         session.commit()
 
         return "done"
