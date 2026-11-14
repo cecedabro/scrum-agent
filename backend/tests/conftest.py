@@ -117,3 +117,9 @@ def reset_login_state() -> None:
     from app.auth import reset_login_state as _reset
 
     _reset()
+
+
+@pytest.fixture(autouse=True)
+def _patch_worker_is_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default is_up=True for worker tests (model is available)."""
+    monkeypatch.setattr("app.worker.is_up", lambda *a, **k: True)

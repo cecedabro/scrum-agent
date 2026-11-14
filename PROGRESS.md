@@ -174,3 +174,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_worker.py` (7 tests): covers idle state, successful result storage, single failure/retry, three-attempt permanent failure, transcript clearing, attempts increment, and started_at set. All mock `summarize` calls.
 - Coverage: worker.py 97%, total 94% (≥90% met). `make check` exit 0.
 - Note: Task specifies "without the model check" — no `is_up()` health check in `run_once`. Auto-post to Teams and model status tracking in `app_state` are deferred to later tasks. Next task should wire the `main()` loop and cron tick integration.
+
+## T31
+- Updated `backend/app/worker.py`: `run_once` now checks `llm.is_up()` before claiming, stores `model_status` (`{"up", "checked_at", "last_up_at"}`) in `app_state`, returns `"model_offline"` when down (job stays queued), and returns `"done"`/`"retry"`/`"failed"`/`"idle"` as before. Added `reset_stuck(session, now)` which resets jobs `running` > 30 min back to `queued` (clears `started_at`). Added `main()` loop: calls `reset_stuck` once, then loops `run_once` with 60 s sleep after `idle`/`model_offline`.
+- Added `_patch_worker_is_up` autouse fixture to `backend/tests/conftest.py` that patches `app.worker.is_up` → `True` so existing `test_worker.py` tests continue to pass.
+- Created `backend/tests/test_worker_model.py` (6 tests): model down → queued + status stored (2 tests), model up → `last_up_at` updated + job done (1 test), 31 min stuck reset (1 test), 29 min not reset (1 test), no stuck jobs no-op (1 test).
+- All 474 tests pass, 94% coverage, `make check` exit 0.
