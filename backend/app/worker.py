@@ -9,6 +9,7 @@ Return values: ``"idle"``, ``"model_offline"``, ``"done"``, ``"retry"``,
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -17,7 +18,8 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.cards import summary_card
+from app.ask import QuestionError, ask
+from app.cards import question_card, summary_card
 from app.config import get_settings
 from app.llm import is_up
 from app.models import AppState, Job
@@ -141,6 +143,9 @@ def run_once(
     session.flush()
 
     try:
+        if job.kind == "question":
+            return _process_question(session, job, now, llm_client, teams_client)
+
         # Run the summarization.
         if job.transcript is None:
             raise SummaryError("Transcript is empty")
@@ -178,6 +183,58 @@ def run_once(
         # Failure path.
         _handle_failure(session, job, now, str(exc))
         return "retry"
+
+
+def _process_question(
+    session: Session,
+    job: Job,
+    now: Any,
+    llm_client: httpx.Client | None,
+    teams_client: httpx.Client | None,
+) -> str:
+    """Process a question job: call the LLM, post the answer, update job."""
+    # Parse context from transcript (JSON stored by web app).
+    deadline_title = ""
+    last_summary = ""
+    if job.transcript:
+        try:
+            ctx = json.loads(job.transcript)
+            deadline_title = ctx.get("deadline_title", "")
+            last_summary = ctx.get("last_summary", "")
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    try:
+        answer = ask(
+            job.title,
+            deadline_title=deadline_title,
+            last_summary=last_summary,
+            client=llm_client,
+        )
+    except QuestionError as exc:
+        _handle_failure(session, job, now, str(exc))
+        return "retry"
+
+    job.status = "done"
+    job.result = {"answer": answer}
+    job.finished_at = now
+
+    # Always post question cards (not subject to auto-post setting).
+    try:
+        send_once(
+            session,
+            kind="question",
+            ref_key=f"question:{job.id}",
+            card=question_card(job.title, answer),
+            client=teams_client,
+            now=now,
+        )
+        job.posted_at = now
+    except Exception:
+        logger.exception("Post failed for question job %s", job.id)
+
+    session.commit()
+    return "done"
 
 
 def _handle_failure(session: Session, job: Job, now: Any, error_msg: str) -> None:
