@@ -175,7 +175,7 @@ def test_post_deadline_empty_title_shows_error(auth_client: TestClient) -> None:
         "due_date": "2026-11-25",
     }
     r = auth_client.post("/deadlines", data=payload)
-    assert r.status_code == 200
+    assert r.status_code == 422
     assert b"Titel mag niet leeg zijn" in r.content
     assert b'name="title"' in r.content
 
@@ -188,7 +188,7 @@ def test_post_deadline_long_title_shows_error(auth_client: TestClient) -> None:
         "due_date": "2026-11-25",
     }
     r = auth_client.post("/deadlines", data=payload)
-    assert r.status_code == 200
+    assert r.status_code == 422
     assert b"Titel mag maximaal 200 tekens bevatten" in r.content
 
 
@@ -199,7 +199,7 @@ def test_post_deadline_invalid_date_shows_error(auth_client: TestClient) -> None
         "due_date": "not-a-date",
     }
     r = auth_client.post("/deadlines", data=payload)
-    assert r.status_code == 200
+    assert r.status_code == 422
     assert b"Ongeldige datum" in r.content
 
 
@@ -211,7 +211,7 @@ def test_post_deadline_invalid_time_shows_error(auth_client: TestClient) -> None
         "due_time": "25:99",
     }
     r = auth_client.post("/deadlines", data=payload)
-    assert r.status_code == 200
+    assert r.status_code == 422
     assert b"Ongeldige tijd" in r.content
 
 
@@ -224,7 +224,7 @@ def test_post_deadline_preserves_input_on_error(db, auth_client: TestClient) -> 
         "note": "Blijft zichtbaar",
     }
     r = auth_client.post("/deadlines", data=payload_err)
-    assert r.status_code == 200
+    assert r.status_code == 422
     assert b'value=""' in r.content
     assert b"Blijft zichtbaar" in r.content
 

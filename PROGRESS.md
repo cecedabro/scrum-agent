@@ -116,3 +116,8 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_models_job.py` (22 tests): table existence, defaults (queued/summary/0), full insert, status transitions, failed status, different kind, timestamps set, started_at set, AppState insert/update/null/updated_at, column name checks, key is pk, timestamps are UTC, database defaults verification.
 - Gotcha: JSON columns use `Mapped[Any | None]` not `Mapped[dict | None]` to satisfy mypy strict mode. Migration uses `sa.JSON()` type. Both models follow the data model spec in docs/backend.md.
 - All 385 tests pass, 95% coverage, `make check` exit 0. Next task needs the worker that queries `Job` rows with `SKIP LOCKED`.
+
+## T09
+- Modified `backend/app/web.py`: Changed `deadlines_add` POST handler to return `status_code=422` on validation errors (was 200). Fixed `due_date` empty string bug (falsy check skipped error creation). Added `note` max 1000 char validation.
+- Updated `backend/tests/test_page_deadlines_edit.py`: Changed 5 tests from expecting `status_code == 200` to `422` for validation error cases (empty title, long title, invalid date, invalid time, preserved input on error).
+- All 385 tests pass, 95% coverage, `make check` exit 0.

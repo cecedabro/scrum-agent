@@ -112,11 +112,15 @@ async def deadlines_add(
         elif len(title) > 200:
             errors["title"] = "Titel mag maximaal 200 tekens bevatten"
 
-        try:
-            parsed_date = date.fromisoformat(due_date) if due_date else None
-        except (ValueError, TypeError):
+        if not due_date:
+            errors["due_date"] = "Vul een datum in (YYYY-MM-DD)"
             parsed_date = None
-            errors["due_date"] = "Ongeldige datum (YYYY-MM-DD)"
+        else:
+            try:
+                parsed_date = date.fromisoformat(due_date)
+            except ValueError:
+                parsed_date = None
+                errors["due_date"] = "Ongeldige datum (YYYY-MM-DD)"
 
         parsed_time: dt_time | None = None
         if due_time:
@@ -124,6 +128,9 @@ async def deadlines_add(
                 parsed_time = dt_time.fromisoformat(due_time)
             except ValueError:
                 errors["due_time"] = "Ongeldige tijd (HH:MM)"
+
+        if note and len(note) > 1000:
+            errors["note"] = "Notitie mag maximaal 1000 tekens bevatten"
 
         if errors:
             with next(get_db()) as session2:
@@ -143,6 +150,7 @@ async def deadlines_add(
                     "form_note": note,
                     "errors": errors,
                 },
+                status_code=422,
             )
 
         data = DeadlineIn(title=title, due_date=parsed_date, due_time=parsed_time, note=note)
