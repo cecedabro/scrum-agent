@@ -6,7 +6,6 @@ from scripts.next_version import next_version
 def test_no_tags_returns_v010() -> None:
     """No semver tags → first release v0.1.0."""
     assert next_version(tags=[], commit_messages=[]) == "v0.1.0"
-    assert next_version(tags=None, commit_messages=None) == "v0.1.0"
 
 
 def test_non_semver_tags_ignored() -> None:
@@ -110,3 +109,19 @@ def test_major_bump_resets_minor_and_patch() -> None:
         )
         == "v3.0.0"
     )
+
+
+def test_only_commits_since_the_latest_tag_count(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """An old commit mentioning [major] must not bump again after it was released."""
+    import scripts.next_version as nv
+
+    seen: list[str | None] = []
+
+    def fake_log(since: str | None = None) -> list[str]:
+        seen.append(since)
+        return ["Fix the worker"]
+
+    monkeypatch.setattr(nv, "_git_tags", lambda: ["v0.1.0"])
+    monkeypatch.setattr(nv, "_git_log_messages", fake_log)
+    assert nv.next_version() == "v0.1.1"
+    assert seen == ["v0.1.0"]

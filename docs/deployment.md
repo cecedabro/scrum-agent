@@ -34,7 +34,7 @@ the devbox; `.github/workflows/image.yml` builds and smoke-tests it.
 | Security | runAsNonRoot, uid 10001, readOnlyRootFilesystem, no privilege escalation, drop ALL caps, seccomp RuntimeDefault, emptyDir on `/tmp`, `automountServiceAccountToken: false` |
 | Placement | preferred away from `k3s-gpu-01` and `k3s-worker-02` |
 | Public URL | `https://scrum.cedricschippers.dev` via the Cloudflare tunnel (route set in the Cloudflare dashboard, no Ingress object, no Cloudflare Access) |
-| Image | public GHCR package; Flux ImageRepository/ImagePolicy `flux-system/scrum-agent` (semver `>=0.1.0`) rewrites every line with the marker |
+| Image | public GHCR package; Flux ImageRepository/ImagePolicy `flux-system/scrum-agent` (tags `vX.Y.Z`, semver `>=0.1.0`) rewrites every line with the marker |
 
 The homelab adds a NetworkPolicy with default-deny egress: DNS, same namespace (Postgres),
 `192.168.50.17:8080` (llama-server), `192.168.50.11:9009` (waker) and public TCP 443 (Teams).
@@ -52,7 +52,7 @@ deploy/
   externalsecret.yaml  # ExternalSecrets scrum-agent-app and scrum-agent-db (store `openbao`)
   README.md            # what the homelab copies, OpenBao keys, egress, rollback
 ```
-Image lines: `ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}`
+Image lines: `ghcr.io/cecedabro/scrum-agent:v0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}`
 on every container that runs the app image (web, wait-for-db, migrate, worker, tick).
 Validate with `make -C deploy validate`; lint workflows with `uvx --from actionlint-py actionlint`.
 

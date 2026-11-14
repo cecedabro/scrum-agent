@@ -59,12 +59,8 @@ jobs:
         if: steps.skip.outputs.skip == 'false'
         id: version
         run: |
-          COMMIT_MSGS=$(git log -50 --format=%s)
-          ARGS=()
-          while IFS= read -r msg; do
-            ARGS+=("$msg")
-          done <<< "$COMMIT_MSGS"
-          echo "tag=$(cd backend && uv run python -m scripts.next_version --commit-messages "${ARGS[@]}")" >> "$GITHUB_OUTPUT"
+          # next_version reads the tags and the commits since the latest tag from git itself.
+          echo "tag=$(cd backend && uv run python -m scripts.next_version)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v3
         if: steps.skip.outputs.skip == 'false'
