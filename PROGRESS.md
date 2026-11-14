@@ -239,3 +239,8 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_next_version.py` (9 tests): no tags → v0.1.0, non-semver tags ignored, patch bump, minor bump, major bump, major precedence over minor, latest semver tag selection, mixed tags with valid semver, major reset of minor+patch.
 - Gotcha: Bandit S603/S607 warnings on subprocess calls require `# noqa` comments — one per line matching the existing pattern (`# noqa: S603` on `subprocess.run`, `# noqa: S607` on the array argument).
 - All 601 tests pass, 94% coverage, `make check` exit 0.
+
+## T42
+- Created `.github/workflows/release.yml` (SPEC 9.3): trigger `push: branches: [main]`; permissions `contents: write, packages: write`; concurrency group `release` (no cancel-in-progress); first job `migrations` calls `migrations.yml` via `uses`; second job `release` (needs: migrations) does full-history checkout (`fetch-depth: 0`), checks for `[skip release]` in HEAD commit message, runs `make setup && make check`, computes version via `next_version.py` passing commit messages as bash array args, logs into ghcr.io, builds and pushes Docker image with `:X.Y.Z` and `:sha-<short>` tags via `build-push-action@v6`, creates and pushes annotated git tag. All steps gated by `if: steps.skip.outputs.skip == 'false'`.
+- Gotcha: `next_version.py` commit messages must be passed as separate bash array elements (`"${ARGS[@]}"`) to preserve spaces in messages; SC2086 suppressed by using array syntax instead of unquoted variable expansion.
+- `actionlint` exit 0, `make check` exit 0.

@@ -104,7 +104,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
 ## Delivery
 - [x] T41: `backend/scripts/next_version.py` (stdlib only) per SPEC 9.3. Write `tests/test_next_version.py` (no tags → v0.1.0, patch bump, `[minor]`, `[major]`, non-semver tags ignored).
   accept: cd backend && uv run pytest tests/test_next_version.py -q
-- [ ] T42: `.github/workflows/release.yml` (SPEC 9.3): on push to main; `permissions: contents: write, packages: write`; concurrency group `release`, no cancel; a first job `uses: ./.github/workflows/migrations.yml`; then full-history checkout, `make setup && make check`, next version, `docker/login-action@v3`, `docker/setup-buildx-action@v3`, `docker/build-push-action@v6` pushing `:X.Y.Z` and `:sha-<short>`, then create and push the tag. Skip all when the message contains `[skip release]`.
+- [x] T42: `.github/workflows/release.yml` (SPEC 9.3): on push to main; `permissions: contents: write, packages: write`; concurrency group `release`, no cancel; a first job `uses: ./.github/workflows/migrations.yml`; then full-history checkout, `make setup && make check`, next version, `docker/login-action@v3`, `docker/setup-buildx-action@v3`, `docker/build-push-action@v6` pushing `:X.Y.Z` and `:sha-<short>`, then create and push the tag. Skip all when the message contains `[skip release]`.
   accept: uvx --from actionlint-py actionlint .github/workflows/release.yml
 - [ ] T43: `deploy/` part 1: `Makefile` (validate), `kustomization.yaml`, `namespace.yaml`, `app.yaml` (web Deployment with wait-for-db and migrate initContainers, Service) exactly per docs/deployment.md.
   accept: make -C deploy validate
