@@ -227,3 +227,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Fixed `backend/tests/test_auth.py`: added `db` dependency to `test_success_with_valid_credentials`, `test_11th_failure_returns_429`, and `test_rate_limit_per_ip` (same psycopg2 issue — these tests log in and hit `/`).
 - All 581 tests pass, 94% coverage, `make check` exit 0.
 - Note: `datum_kort` must be registered on every isolated Jinja2 Environment that renders deadline/job/model data (web.py, meetings.py, _jinja_env).
+
+## T40
+- Created `backend/scripts/dev.py`: bootstrap script starting pgserver, running alembic upgrade, seeding 4 deadlines + 1 finished summary job, launching FastAPI fake LLM on port 18080, and running uvicorn on :8000.
+- Created `backend/tests/test_dev_seed.py` (11 tests): verifies deadline count, dates, sources, job result JSON, and seed idempotency via truncation. Tests depend on `db` fixture for session-scoped isolation.
+- Fixed `_seed()` to use SQLAlchemy 2.0 `table()`/`column()` instead of `text()` for DML, and `json.dumps()` for PostgreSQL JSON columns.
+- All 592 tests pass, 94% coverage, `make check` exit 0.
