@@ -1,3 +1,4 @@
+# Every 10 minutes: Teams reminders (weekly overview, deadlines, sprint) and retention.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -8,60 +9,41 @@ spec:
   timeZone: Europe/Amsterdam
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
-  successfulJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       backoffLimit: 0
+      activeDeadlineSeconds: 240
       template:
         metadata:
-          labels:
-            app: scrum-agent-tick
+          labels: {app: scrum-agent-tick}
         spec:
           automountServiceAccountToken: false
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                  - matchExpressions:
-                      - key: kubernetes.io/hostname
-                        operator: NotIn
-                        values:
-                          - k3s-gpu-01
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile: {type: RuntimeDefault}
           containers:
             - name: tick
               image: ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}
-              command:
-                - python
-                - -m
-                - app.tick
+              command: [python, -m, app.tick]
               envFrom:
-                - secretRef:
-                    name: scrum-agent-app
+                - secretRef: {name: scrum-agent-app}
               env:
-                - name: APP_ENV
-                  value: production
-                - name: LLM_BASE_URL
-                  value: http://192.168.50.17:8080/v1
+                - {name: APP_ENV, value: production}
+                - {name: TEAM_USER, value: team}
               securityContext:
-                runAsNonRoot: true
-                runAsUser: 10001
+                allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
-                capabilities:
-                  drop:
-                    - ALL
-                seccompProfile:
-                  type: RuntimeDefault
+                capabilities: {drop: [ALL]}
               volumeMounts:
-                - name: tmp
-                  mountPath: /tmp
+                - {name: tmp, mountPath: /tmp}
               resources:
-                requests:
-                  cpu: 10m
-                  memory: 96Mi
-                limits:
-                  memory: 192Mi
+                requests: {cpu: 10m, memory: 64Mi}
+                limits: {memory: 128Mi}
           volumes:
             - name: tmp
               emptyDir: {}
-          restartPolicy: OnFailure

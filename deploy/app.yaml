@@ -1,3 +1,5 @@
+# Web app: the site (behind the team password) and the Teams outgoing webhook.
+# Cloudflare tunnel route (added by hand in the dashboard): http://scrum-agent.scrum-agent.svc.cluster.local:80
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,129 +7,92 @@ metadata:
   namespace: scrum-agent
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
+  strategy: {type: Recreate}
   selector:
-    matchLabels:
-      app: scrum-agent
+    matchLabels: {app: scrum-agent}
   template:
     metadata:
-      labels:
-        app: scrum-agent
+      labels: {app: scrum-agent}
     spec:
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
       affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: NotIn
-                    values:
-                      - k3s-gpu-01
+        nodeAffinity:   # keep off the GPU node and the fullest worker when possible
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: NotIn, values: [k3s-gpu-01, k3s-worker-02]}
       initContainers:
         - name: wait-for-db
-          image: busybox:1.37
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z scrum-agent-db 5432; do
-                echo "Waiting for database..."
-                sleep 2
-              done
-          securityContext:
-            runAsNonRoot: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-        - name: migrate
           image: ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}
           command:
             - python
-            - -m
-            - alembic
-            - upgrade
-            - head
-          envFrom:
-            - secretRef:
-                name: scrum-agent-app
-          env:
-            - name: APP_ENV
-              value: production
-            - name: LLM_BASE_URL
-              value: http://192.168.50.17:8080/v1
-            - name: TEAM_USER
-              value: team
+            - -c
+            - |
+              import socket, time
+              while True:
+                  try:
+                      socket.create_connection(("scrum-agent-db", 5432), timeout=2).close()
+                      break
+                  except OSError:
+                      print("waiting for the database", flush=True)
+                      time.sleep(2)
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 10001
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
+            capabilities: {drop: [ALL]}
           resources:
-            requests:
-              cpu: 25m
-              memory: 128Mi
-            limits:
-              memory: 256Mi
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 64Mi}
+        - name: migrate
+          image: ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}
+          command: [python, -m, alembic, upgrade, head]
+          envFrom:
+            - secretRef: {name: scrum-agent-app}
+          env:
+            - {name: APP_ENV, value: production}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}
       containers:
         - name: web
           image: ghcr.io/cecedabro/scrum-agent:0.1.0 # {"$imagepolicy": "flux-system:scrum-agent"}
           ports:
-            - containerPort: 8000
+            - {name: http, containerPort: 8000}
           envFrom:
-            - secretRef:
-                name: scrum-agent-app
+            - secretRef: {name: scrum-agent-app}
           env:
-            - name: APP_ENV
-              value: production
-            - name: LLM_BASE_URL
-              value: http://192.168.50.17:8080/v1
-            - name: TEAM_USER
-              value: team
+            - {name: APP_ENV, value: production}
+            - {name: TEAM_USER, value: team}
+            - {name: LLM_BASE_URL, value: "http://192.168.50.17:8080/v1"}
+            - {name: LLM_MODEL, value: coder}
+            - {name: WAKER_URL, value: "http://192.168.50.11:9009"}
           livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8000
-            initialDelaySeconds: 10
-            periodSeconds: 10
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 20
           readinessProbe:
-            httpGet:
-              path: /readyz
-              port: 8000
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 10
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 10001
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
+            capabilities: {drop: [ALL]}
           volumeMounts:
-            - name: tmp
-              mountPath: /tmp
+            - {name: tmp, mountPath: /tmp}
           resources:
-            requests:
-              cpu: 25m
-              memory: 128Mi
-            limits:
-              memory: 256Mi
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}
       volumes:
         - name: tmp
           emptyDir: {}
@@ -138,8 +103,6 @@ metadata:
   name: scrum-agent
   namespace: scrum-agent
 spec:
-  selector:
-    app: scrum-agent
+  selector: {app: scrum-agent}
   ports:
-    - port: 80
-      targetPort: 8000
+    - {name: http, port: 80, targetPort: 8000}
