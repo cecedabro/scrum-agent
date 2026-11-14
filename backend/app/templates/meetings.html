@@ -3,6 +3,10 @@
 {% block content %}
 <h1>{{ page_title }}</h1>
 
+{% for field, msg in errors.items() %}
+<span class="error">{{ msg }}</span>
+{% endfor %}
+
 <form method="post" action="/meetings" enctype="multipart/form-data">
     <fieldset>
         <legend>Transcript uploaden</legend>

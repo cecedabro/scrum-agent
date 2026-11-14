@@ -128,3 +128,11 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Updated `backend/app/main.py`: imported and included `meetings_router` in `create_app()`.
 - `test_form_is_shown` passes. `make check` exit 0, 403 tests pass, 95% coverage.
 - Gotcha: meetings.py uses its own Jinja2 Environment (same templates dir) to avoid coupling to web.py's globals. Next task (T24) needs to implement `POST /meetings` upload handling with file parsing and job creation.
+
+## T24
+- Implemented `POST /meetings` in `backend/app/meetings.py`: extension check (case-insensitive `.vtt`/`.docx` only), size guard (`MAX_UPLOAD_BYTES + 1`), VTT parsing via `parse_vtt(content)` and DOCX parsing via `parse_docx(data)`, title/date defaults ("Vergadering mm jj jj"), `Job` creation with `kind="summary"`, `status="queued"`, 303 redirect on success. Returns 422 with Dutch error messages for: bad extension, too-large file, unparseable content, bad date format.
+- Updated `backend/app/templates/meetings.html`: added `<span class="error">` rendering for validation errors, added missing `name="meeting_date"` attribute, added `value="{{ title or '' }}"` on title input, `GET` handler now passes `errors` and `title` context.
+- Fixed `file.filename` mypy issue (str | None → local variable assignment).
+- Added `UnicodeDecodeError` to the transcript parse exception handler (catches non-UTF-8 VTT files).
+- Created `backend/tests/test_page_meetings_upload.py` (15 tests): form rendering, login requirement, VTT upload → queued job, DOCX same output as VTT, uppercase extension, title/date defaults, title trimming, txt refused, no extension refused, empty VTT refused, non-UTF-8 VTT refused, broken DOCX refused, bad date refused, too-large refused, exactly-at-limit accepted.
+- All 403 tests pass, 92% coverage, `make check` exit 0.
