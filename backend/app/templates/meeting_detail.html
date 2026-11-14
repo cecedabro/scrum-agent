@@ -63,5 +63,8 @@
 {% endif %}
 {% endif %}
 
+<form method="post" action="/meetings/{{ job.id }}/delete" style="display:inline;">
+    <button type="submit">Verwijderen</button>
+</form>
 <a href="/meetings">Terug</a>
 {% endblock %}

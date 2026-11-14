@@ -297,3 +297,19 @@ async def meeting_post(
         session.commit()
 
     return RedirectResponse(url=f"/meetings/{job_id}", status_code=303)
+
+
+@router.post("/meetings/{job_id}/delete")
+async def meeting_delete(
+    job_id: int,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Delete a meeting job (SPEC 8.3)."""
+    with next(get_db()) as session:
+        job = session.get(Job, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Vergadering niet gevonden")
+        session.delete(job)
+        session.commit()
+
+    return RedirectResponse(url="/meetings", status_code=303)

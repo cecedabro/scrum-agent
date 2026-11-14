@@ -92,7 +92,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
 ## Privacy and polish
 - [x] T36: `app/retention.py` `apply_retention(session, now)` (SPEC 8.1–8.2, docs/privacy.md table), called by `run_tick`. Write `tests/test_retention.py` (each rule one day before and after its limit; a failed job's transcript after 7 days).
   accept: cd backend && uv run pytest tests/test_retention.py -q
-- [ ] T37: Delete a meeting (SPEC 8.3): `POST /meetings/{id}/delete` → 303 to `/meetings`, 404 for unknown ids, and a delete button on the detail page. Write `tests/test_meeting_delete.py`.
+- [x] T37: Delete a meeting (SPEC 8.3): `POST /meetings/{id}/delete` → 303 to `/meetings`, 404 for unknown ids, and a delete button on the detail page. Write `tests/test_meeting_delete.py`.
   accept: cd backend && uv run pytest tests/test_meeting_delete.py -q
 - [ ] T38: `/privacy` page in Dutch (SPEC 8.4) with the contents of docs/privacy.md (what, where, how long, how to delete). Write `tests/test_page_privacy.py` (200 behind auth, each row of the table present, nav `aria-current`).
   accept: cd backend && uv run pytest tests/test_page_privacy.py -q

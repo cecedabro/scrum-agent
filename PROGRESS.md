@@ -209,3 +209,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_retention.py` (15 tests): covers all retention rules individually and combined (5 done job transcript clearing, 5 old summary deletion, 5 old deadline deletion, old failed job deletion, old post-log deletion, summary without result preserved, recent jobs preserved, integration test for all rules together).
 - Gotcha: PostgreSQL's SQLAlchemy `JSON` type uses `none_as_null=False` by default, storing Python `None` as JSON `null` (not SQL NULL). The summary retention query uses `cast(Job.result, String) != "null"` alongside `Job.result.isnot(None)` to correctly exclude both SQL NULL and JSON `null` values. The deadline cutoff must be cast to `.date()` to avoid comparing `datetime` to `SQLDate`. `get_settings.cache_clear()` must be called before `apply_retention` in tests to pick up monkeypatched env vars.
 - All 539 tests pass, 94% coverage, `make check` exit 0.
+
+## T37
+- Added `@router.post("/meetings/{job_id}/delete")` route in `backend/app/meetings.py` (SPEC 8.3): loads job (404 if missing), deletes from DB, commits, returns 303 to `/meetings`.
+- Added delete button to `backend/app/templates/meeting_detail.html`: inline form with `POST /meetings/{job_id}/delete`, Dutch label "Verwijderen", no inline JS.
+- Created `backend/tests/test_meeting_delete.py` (10 tests): covers redirect, 404 on unknown ID, deletion across statuses (done/queued/failed/running), removal from list, delete button visibility on detail page, and delete via detail form.
+- Gotcha: SQLAlchemy identity map caches pre-delete objects in the test session. All `db.get(Job, id) is None` assertions replaced with `db.execute(select(Job).where(Job.id == id)).scalar_one_or_none() is None` to bypass identity map and verify actual DB deletion.
+- All 549 tests pass, 94% coverage, `make check` exit 0.
