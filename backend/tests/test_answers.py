@@ -127,8 +127,9 @@ def test_deadline_week_no_deadlines():
 
 
 def test_deadline_cap():
-    deadlines = [_d(f"Opdracht {i}", Mon + timedelta(days=i), "23:59")
-                 for i in range(1, 16)]  # 15 deadlines
+    deadlines = [
+        _d(f"Opdracht {i}", Mon + timedelta(days=i), "23:59") for i in range(1, 16)
+    ]  # 15 deadlines
     result = quick_answer("wat zijn de deadlines?", Mon, deadlines, None)
     assert result is not None
     lines = result.split("\n")

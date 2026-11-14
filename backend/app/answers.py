@@ -56,11 +56,7 @@ def quick_answer(
             # Deadlines today → Sunday of this week
             monday = today - timedelta(days=today.weekday())
             sunday = monday + timedelta(days=6)
-            shown = [
-                d
-                for d in deadlines
-                if monday <= d["due_date"] <= sunday
-            ]
+            shown = [d for d in deadlines if monday <= d["due_date"] <= sunday]
         else:
             # Upcoming deadlines (today and later)
             shown = [d for d in deadlines if d["due_date"] >= today]
@@ -83,9 +79,7 @@ def quick_answer(
             lines.append(f"- {' '.join(parts)}")
 
         if len(shown) > cap:
-            lines.append(
-                f"- … en {len(shown) - cap} meer"
-            )
+            lines.append(f"- … en {len(shown) - cap} meer")
 
         return "\n".join(lines)
 
