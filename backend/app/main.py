@@ -47,7 +47,8 @@ def create_app() -> FastAPI:
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         """SPEC 2.3: reject cross-site unsafe requests with 403."""
-        if request.method in _UNSAFE_METHODS:
+        # /teams/outgoing is called server-to-server by Teams and checks its own HMAC.
+        if request.method in _UNSAFE_METHODS and request.url.path != "/teams/outgoing":
             sec_fetch = request.headers.get("sec-fetch-site", "")
             if sec_fetch == "cross-site":
                 resp = JSONResponse(

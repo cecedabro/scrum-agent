@@ -145,7 +145,7 @@ def test_sprint_on():
     sprint_end = Fri
     result = quick_answer("sprint", Mon, [], sprint_end)
     assert result is not None
-    assert sprint_end.isoformat() in result
+    assert "vr 13 nov" in result
     assert "over" in result or "morgen" in result or "vandaag" in result
 
 
@@ -158,7 +158,7 @@ def test_sprint_off():
 def test_sprint_keyword_case_insensitive():
     result = quick_answer("SPRINT EINDE", Mon, [], Fri)
     assert result is not None
-    assert Fri.isoformat() in result
+    assert "vr 13 nov" in result
 
 
 # ── Fallback to model ─────────────────────────────────────────────────

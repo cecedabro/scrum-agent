@@ -14,19 +14,24 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import re
 from datetime import date
 from html import unescape
 from typing import Any
 
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse, Response
+from sqlalchemy.orm import Session
 
 from app.answers import quick_answer
 from app.clock import today_local
 from app.config import get_settings
 from app.db import get_db
+from app.deadlines import upcoming
+from app.fmt import relatief
 from app.models import AppState, Job
+from app.settings import load
 
 __all__ = ["verify_hmac", "clean_text", "router"]
 
@@ -91,77 +96,60 @@ def _count_queued_questions(session: Any) -> int:
     return int(session.query(Job).filter(Job.kind == "question", Job.status == "queued").count())
 
 
+MAX_BODY_BYTES = 64 * 1024  # SPEC 10.1
+
+
 @router.post("/teams/outgoing")
-async def handle_teams_message(request: Request) -> JSONResponse:
-    """Handle incoming Teams webhook message (SPEC 10.1–10.6)."""
-    settings = get_settings()
-    secret = settings.TEAMS_HMAC_SECRET
+async def handle_teams_message(request: Request, session: Session = Depends(get_db)) -> Response:
+    """Teams outgoing webhook (SPEC 10.1-10.4): quick answer or queue a question job."""
+    secret = get_settings().TEAMS_HMAC_SECRET
+    if not secret:
+        return Response(status_code=503)
 
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+        return Response(status_code=413)
     body = await request.body()
-    header = request.headers.get("Authorization")
+    if len(body) > MAX_BODY_BYTES:
+        return Response(status_code=413)
 
-    if not verify_hmac(body, header, secret):
-        return JSONResponse(status_code=401, content={"text": "Ongeldige HMAC-signatuur"})
+    if not verify_hmac(body, request.headers.get("Authorization"), secret):
+        return Response(status_code=401)
 
     try:
-        data = body.decode("utf-8")
-        import json
-
-        payload = json.loads(data)
+        payload = json.loads(body.decode("utf-8"))
+        raw_text = payload.get("text", "") if isinstance(payload, dict) else ""
     except (UnicodeDecodeError, json.JSONDecodeError):
-        return JSONResponse(status_code=400, content={"text": "Ongeldige payload"})
-
-    raw_text = payload.get("text", "")
-    cleaned = clean_text(raw_text)
+        return Response(status_code=400)
+    cleaned = clean_text(raw_text if isinstance(raw_text, str) else "")
     today = today_local()
 
-    with next(get_db()) as session:
-        # Load deadlines and sprint_end for quick_answer
-        from app.deadlines import upcoming
-        from app.settings import load
+    deadlines = [
+        {
+            "title": d.title,
+            "due_date": d.due_date,
+            "due_time": d.due_time.strftime("%H:%M") if d.due_time else None,
+            "relatief": relatief(d.due_date, today=today),
+        }
+        for d in upcoming(session, today=today)
+    ]
+    sprint_end = None
+    end_raw = load(session).sprint_end_date
+    if end_raw:
+        try:
+            sprint_end = date.fromisoformat(str(end_raw))
+        except ValueError:
+            sprint_end = None
 
-        deadlines_list = upcoming(session, today=today)
-        deadlines = [
-            {
-                "title": d.title,
-                "due_date": d.due_date,
-                "due_time": d.due_time.strftime("%H:%M") if d.due_time else None,
-                "relatief": "vandaag",  # simplified; quick_answer uses it
-            }
-            for d in deadlines_list
-        ]
-
-        app_settings = load(session)
-        sprint_end = None
-        if app_settings.sprint_end_date:
-            try:
-                sprint_end = date.fromisoformat(app_settings.sprint_end_date)
-            except ValueError:
-                sprint_end = None
-
-        # Try quick answer
-        reply = quick_answer(cleaned.lower(), today, deadlines, sprint_end)
-
-        if reply is not None:
-            # Recognised pattern → return quick answer
-            return JSONResponse(content={"type": "message", "text": reply})
-
-        # Unknown question → queue it
+    reply = quick_answer(cleaned, today, deadlines, sprint_end)
+    if reply is None:
         if _count_queued_questions(session) >= 5:
-            return JSONResponse(content={"type": "message", "text": _REPLY_FULL})
-
-        # Determine model status for reply
-        model_up = _get_model_up(session)
-        reply_text = _REPLY_UP if model_up else _REPLY_DOWN
-
-        # Create question job (no sender name stored per SPEC 10.4)
-        job = Job(
-            kind="question",
-            status="queued",
-            title=cleaned[:500],
-            meeting_date=today,
-        )
-        session.add(job)
-        session.commit()
-
-        return JSONResponse(content={"type": "message", "text": reply_text})
+            reply = _REPLY_FULL
+        else:
+            reply = _REPLY_UP if _get_model_up(session) else _REPLY_DOWN
+            # The sender's name is not stored (SPEC 10.4).
+            session.add(
+                Job(kind="question", status="queued", title=cleaned[:500], meeting_date=today)
+            )
+            session.commit()
+    return JSONResponse(content={"type": "message", "text": reply})

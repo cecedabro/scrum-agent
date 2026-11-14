@@ -47,7 +47,7 @@ def quick_answer(
     if "sprint" in low:
         if sprint_end:
             rel = relatief(sprint_end, today=today)
-            return f"De sprint eindigt {sprint_end} ({rel})."
+            return f"De sprint eindigt {datum_kort(sprint_end)} ({rel})."
         return "Er is geen sprint ingesteld."
 
     # Deadlines — SPEC 10.3 (contains "deadline")
