@@ -180,3 +180,8 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Added `_patch_worker_is_up` autouse fixture to `backend/tests/conftest.py` that patches `app.worker.is_up` → `True` so existing `test_worker.py` tests continue to pass.
 - Created `backend/tests/test_worker_model.py` (6 tests): model down → queued + status stored (2 tests), model up → `last_up_at` updated + job done (1 test), 31 min stuck reset (1 test), 29 min not reset (1 test), no stuck jobs no-op (1 test).
 - All 474 tests pass, 94% coverage, `make check` exit 0.
+
+## T32
+- Added `summary_card(job)` to `backend/app/cards.py`: pure function returning AdaptiveCard 1.4 content dict with title ("Samenvatting: <titel> (<datum_kort>)"), summary section, optional decisions/action_items/open_questions sections (empty lists omitted), Dutch action item format ("owner: taak (due)"), and subtle footer ("Gemaakt door het lokale taalmodel; controleer de actiepunten."). Uses `datum_kort()` for Dutch date formatting. Added `TYPE_CHECKING` import for `Job` type hint.
+- Created `backend/tests/test_summary_card.py` (26 tests): covers title+date, dateless title, summary text, summary wrap, action items with all owner/due combos, decisions, open questions, empty-list omission, heading bold+small, footer text/style, JSON serializability, and body index correctness.
+- All 500 tests pass, 94% coverage, `make check` exit 0.
