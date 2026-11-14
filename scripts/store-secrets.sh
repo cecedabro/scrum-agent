@@ -8,7 +8,7 @@
 #   scripts/store-secrets.sh team-password  # replace only TEAM_PASSWORD
 #   scripts/store-secrets.sh hmac           # set TEAMS_HMAC_SECRET (outgoing webhook token)
 #
-# Paths: secret/scrum-agent/app  TEAM_PASSWORD, TEAMS_WEBHOOK_URL, LLM_API_KEY, TEAMS_HMAC_SECRET
+# Paths: secret/scrum-agent/app  TEAM_PASSWORD, TEAMS_WEBHOOK_URL, TEAMS_HMAC_SECRET
 #        secret/scrum-agent/db   POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 set -euo pipefail
 
@@ -81,9 +81,11 @@ case "$cmd" in
     fi
     ask_team_password
     ask_webhook
-    LLM_KEY=$(field ai-agent/devbox LLAMA_API_KEY)  # same llama-server key as the devbox
-    printf '%s\n%s\n%s' "$TEAM_PW" "$WEBHOOK" "$LLM_KEY" \
-      | write POST "$APP" TEAM_PASSWORD TEAMS_WEBHOOK_URL LLM_API_KEY
+    # TEAMS_HMAC_SECRET starts empty (@Agent off) unless it is already set; `hmac` fills it.
+    HMAC_OLD=""
+    if exists "$APP"; then HMAC_OLD=$(field "$APP" TEAMS_HMAC_SECRET 2>/dev/null || true); fi
+    printf '%s\n%s\n%s' "$TEAM_PW" "$WEBHOOK" "$HMAC_OLD" \
+      | write POST "$APP" TEAM_PASSWORD TEAMS_WEBHOOK_URL TEAMS_HMAC_SECRET
     ;;
   webhook)
     ask_webhook
@@ -102,7 +104,7 @@ case "$cmd" in
     ;;
 esac
 
-unset BAO_TOKEN WEBHOOK TEAM_PW LLM_KEY HMAC_TOKEN
+unset BAO_TOKEN WEBHOOK TEAM_PW HMAC_OLD HMAC_TOKEN
 cat <<'EOF'
 Done. Once the app runs on the cluster, make it pick up the change now:
   kubectl --context homelab -n scrum-agent annotate externalsecret scrum-agent-app force-sync=$(date +%s) --overwrite

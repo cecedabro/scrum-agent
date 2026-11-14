@@ -1,11 +1,11 @@
+# Only for `make validate` in this repo. The homelab copies the plain manifests into
+# apps/scrum-agent/ and lists them in its own apps/kustomization.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-namespace: scrum-agent
-
 resources:
   - namespace.yaml
   - app.yaml
   - worker.yaml
   - tick.yaml
   - postgres.yaml
+  - externalsecret.yaml
