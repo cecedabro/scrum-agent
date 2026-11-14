@@ -20,7 +20,8 @@ times are local calendar values. All user-facing text (pages and posts) is **Dut
       `{"status": "unavailable"}`.
 
 ## 2. Access and security
-- 2.1 Every route except `/healthz`, `/readyz` and `/static/*` requires HTTP Basic auth with
+- 2.1 Every route except `/healthz`, `/readyz`, `/static/*` and `/teams/outgoing` (HMAC instead,
+      SPEC 10.1) requires HTTP Basic auth with
       `TEAM_USER` / `TEAM_PASSWORD`; missing or wrong credentials → 401 with
       `WWW-Authenticate: Basic realm="scrum-agent"`. Compared with `hmac.compare_digest`.
 - 2.2 More than 10 failed logins in 5 minutes from one client → 429 for that client until
@@ -31,7 +32,8 @@ times are local calendar values. All user-facing text (pages and posts) is **Dut
 - 2.4 Every response sends `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`,
       `X-Frame-Options: DENY` and `Content-Security-Policy: default-src 'self'`. Pages use no
       inline scripts or inline event handlers.
-- 2.5 Secrets (`TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, `LLM_API_KEY`, `WAKER_TOKEN`) never
+- 2.5 Secrets (`TEAM_PASSWORD`, `TEAMS_WEBHOOK_URL`, `LLM_API_KEY`, `WAKER_TOKEN`,
+      `TEAMS_HMAC_SECRET`) never
       appear in logs, pages, error messages or the post log.
 
 ## 3. Deadlines
@@ -146,11 +148,47 @@ tests never sleep or depend on the real clock.
 - 9.5 `deploy/` holds draft Kustomize manifests that pass `kustomize build | kubeconform
   -strict`; secrets are referenced by name only.
 
+## 10. Questions in Teams (phase 3)
+Teams **outgoing webhook** named "Agent": a channel member types `@Agent <vraag>` and Teams
+POSTs the message to the app. Microsoft's rules: standard channels only, the reply must come
+within 5 seconds, and the reply lands in the same thread.
+- 10.1 `POST /teams/outgoing` is exempt from Basic auth (2.1) and the CSRF guard (2.3). It
+  reads the raw body (at most 64 KB, else 413) and checks the header
+  `Authorization: HMAC <base64>`: the HMAC-SHA256 of the raw body bytes, keyed with the
+  base64-decoded `TEAMS_HMAC_SECRET`, compared with `hmac.compare_digest`. Missing, malformed
+  or wrong → 401 with no detail. Empty `TEAMS_HMAC_SECRET` → 503 (feature off). In
+  production a set `TEAMS_HMAC_SECRET` must be valid base64 (`ConfigError` otherwise).
+- 10.2 The question is the body's `text` with every `<at>…</at>` mention and other HTML tags
+  removed, HTML entities decoded, whitespace collapsed and trimmed. The reply is
+  `{"type": "message", "text": "<markdown>"}` with status 200.
+- 10.3 Answered at once, without the LLM, matched case-insensitively on the cleaned text:
+  - empty, `help` or `hulp` → a short Dutch list of what you can ask;
+  - contains `deadline` and `week` → the deadlines from today up to and including Sunday of
+    this week, or "Geen deadlines meer deze week.";
+  - contains `deadline` → the upcoming deadlines (today and later), at most 10, then
+    "… en N meer"; none → "Er staan geen deadlines gepland.";
+  - contains `sprint` → the end date of the current sprint with `relatief`, or "Er is geen
+    sprint ingesteld." when the sprint nudge is off.
+  Deadline lines look like `- ma 16 nov 23:59 — <title> (morgen)` (no time → no clock).
+- 10.4 Anything else is a question for the model: a job with `kind = "question"`, the cleaned
+  text (cut to 500 chars) in `title`, status `queued`. The immediate reply is "Ik denk even
+  na; het antwoord komt zo in dit kanaal." when `app_state.model_status` says up, else "De pc
+  met het taalmodel slaapt. Je vraag staat in de wachtrij; het antwoord komt in dit kanaal
+  zodra hij aan is." With 5 or more question jobs `queued`, nothing is queued and the reply
+  is "Er staan al 5 vragen in de wachtrij; probeer het later nog eens." The sender's name is
+  not stored.
+- 10.5 The worker answers question jobs like summary jobs (same queue order, attempts, model
+  check and wake). The prompt is Dutch and gives the model: the question, today's date, the
+  upcoming deadlines (at most 30), the sprint end date if set, and the `summary`,
+  `decisions` and `action_items` of the 3 most recent finished summary jobs. JSON schema
+  `{"answer": str}`. The answer is posted at once (always, regardless of auto-post) with
+  `send_once(kind="question", ref_key=f"question:{id}")`; the card shows "Vraag: <question>",
+  the answer, and "Antwoord van het lokale taalmodel; kan fouten bevatten."
+- 10.6 `/meetings` lists only `summary` jobs. Question jobs are deleted 30 days after they
+  were created (in the tick, with the other retention).
+
 ## Later phases (not now; keep the model open for them)
 - Phase 2: GitHub Projects (stale issues, sprint progress) → deadlines with
   `source = "github"` and `external_ref`. Waits for the stakeholder's OK.
-- Phase 3: `@Agent` questions through a Teams outgoing webhook (HMAC-verified, reply within
-  5 s, the real answer later through the Workflows webhook). "Wat zijn de deadlines?" is
-  answered from the deadlines list without the LLM; other questions go through the job queue
-  (a new job `kind`).
+- Phase 3: done, see section 10.
 - Phase 4: retro prompts and ideas.

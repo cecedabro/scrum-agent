@@ -6,3 +6,7 @@ docs/                                # area docs: the human's instructions to th
 .github/workflows/image.yml          # human-owned image smoke test
 scripts/store-secrets.sh             # human-run secret setup
 backend/app/static/vendor/           # vendored by hand
+backend/tests/test_page_deadlines.py     # written by hand for T09
+backend/tests/test_page_meetings_upload.py  # written by hand for T23-T24
+backend/tests/test_page_meetings_list.py    # written by hand for T25-T26
+backend/conftest.py                        # skips tests written ahead of their task

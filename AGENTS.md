@@ -40,6 +40,17 @@ After you stop, the harness runs the task's `accept:` command and then `make che
 task counts only if both exit 0; then it commits. Otherwise your work is thrown away and the
 task is retried with the error. So: **run `make check` yourself before you stop.**
 
+## Working in a small context (read this)
+The model has a 48k-token context; a session that goes over it dies and the attempt fails.
+- Read only the files the task names, plus what they import. Use `grep -n` to find a
+  function instead of reading whole files; read long files in parts.
+- Never open binary files (`tests/fixtures/sample.docx`, anything under `static/vendor/`).
+- Run single test files with `uv run pytest tests/test_x.py -q -x --no-cov --tb=short`;
+  run `make check` once at the end, not after every edit.
+- Write big files in several small edits, not one huge write.
+- When a test file for your task already exists, it was written by a human: read it first
+  and make it pass; never edit it.
+
 ## Rules
 - No human answers questions. Never ask "shall I continue". Pick the simplest option, do
   the task, and note the choice in `PROGRESS.md`.

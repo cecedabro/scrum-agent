@@ -6,8 +6,9 @@
 #   scripts/store-secrets.sh init           # first time: app + db secrets
 #   scripts/store-secrets.sh webhook        # replace only TEAMS_WEBHOOK_URL
 #   scripts/store-secrets.sh team-password  # replace only TEAM_PASSWORD
+#   scripts/store-secrets.sh hmac           # set TEAMS_HMAC_SECRET (outgoing webhook token)
 #
-# Paths: secret/scrum-agent/app  TEAM_PASSWORD, TEAMS_WEBHOOK_URL, LLM_API_KEY
+# Paths: secret/scrum-agent/app  TEAM_PASSWORD, TEAMS_WEBHOOK_URL, LLM_API_KEY, TEAMS_HMAC_SECRET
 #        secret/scrum-agent/db   POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 set -euo pipefail
 
@@ -66,7 +67,7 @@ ask_team_password() {
 }
 
 cmd=${1:-}
-case "$cmd" in init|webhook|team-password) ;; *) sed -n '2,11p' "$0"; exit 2 ;; esac
+case "$cmd" in init|webhook|team-password|hmac) ;; *) sed -n '2,12p' "$0"; exit 2 ;; esac
 
 ask_secret BAO_TOKEN "OpenBao token (not shown)"
 
@@ -92,9 +93,16 @@ case "$cmd" in
     ask_team_password
     printf '%s' "$TEAM_PW" | write PATCH "$APP" TEAM_PASSWORD
     ;;
+  hmac)
+    ask_secret HMAC_TOKEN "Outgoing webhook security token from Teams (paste, not shown)"
+    if ! printf '%s' "$HMAC_TOKEN" | base64 -d >/dev/null 2>&1 || [ "${#HMAC_TOKEN}" -lt 20 ]; then
+      echo "that does not look like the base64 token Teams shows; nothing stored" >&2; exit 1
+    fi
+    printf '%s' "$HMAC_TOKEN" | write PATCH "$APP" TEAMS_HMAC_SECRET
+    ;;
 esac
 
-unset BAO_TOKEN WEBHOOK TEAM_PW LLM_KEY
+unset BAO_TOKEN WEBHOOK TEAM_PW LLM_KEY HMAC_TOKEN
 cat <<'EOF'
 Done. Once the app runs on the cluster, make it pick up the change now:
   kubectl --context homelab -n scrum-agent annotate externalsecret scrum-agent-app force-sync=$(date +%s) --overwrite
