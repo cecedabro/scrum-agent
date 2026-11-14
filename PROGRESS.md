@@ -260,3 +260,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Updated `deploy/kustomization.yaml`: added `worker.yaml`, `tick.yaml`, `postgres.yaml` to resources.
 - Gotcha: `backoffLimit` must be at `spec/jobTemplate/spec/backoffLimit`, not `spec/backoffLimit` (kubeconform strict validation).
 - `make -C deploy validate` passes (7 resources valid), `make check` exit 0.
+
+## T46
+- Created `backend/app/answers.py`: `quick_answer(text, today, deadlines, sprint_end) -> str | None` (SPEC 10.3). Recognises help (empty/help/hulp), sprint, and deadline queries (upcoming + "this week" with Monday→Sunday bounds). Dutch formatting via `datum_kort()` and `relatief()`. 10-line cap with "… en N meer". Returns `None` for unrecognised input (SPEC 10.4).
+- Created `backend/tests/test_answers.py` (20 tests): covers help/hulp/HULP, "wat zijn de deadlines?", "deadlines deze week" on Monday & Sunday, 10-line cap, empty deadlines, sprint on/off, lines with/without time, past deadlines excluded, `None` fallback, format checks (datum_kort, time, relatief labels).
+- All 635 tests pass, 94% total coverage, `make check` exit 0.
+- Gotcha: deadline dicts passed to `quick_answer` do not include `datum_kort` — the function calls `datum_kort(d["due_date"])` directly. The `typing.Any` import is required for `list[dict[str, Any]]` to satisfy mypy.
