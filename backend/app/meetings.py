@@ -63,8 +63,7 @@ def _model_state_string(ms: dict[str, Any] | None) -> str:
             time_str = local.strftime("%H:%M")
             date_str = datum_kort(local.date())
             return (
-                f"model offline (pc slaapt of is gepauzeerd), "
-                f"laatst gezien {date_str} {time_str}"
+                f"model offline (pc slaapt of is gepauzeerd), laatst gezien {date_str} {time_str}"
             )
         return "model offline (pc slaapt of is gepauzeerd), nog nooit gezien"
     return "model bereikbaar"
@@ -77,17 +76,8 @@ async def meetings_page(
 ) -> Response:
     """Show the meetings upload form (SPEC 7.1)."""
     with next(get_db()) as session:
-        jobs = (
-            session.query(Job)
-            .filter(Job.kind == "summary")
-            .order_by(Job.id.desc())
-            .all()
-        )
-        model_status_row = (
-            session.query(AppState)
-            .filter(AppState.key == "model_status")
-            .first()
-        )
+        jobs = session.query(Job).filter(Job.kind == "summary").order_by(Job.id.desc()).all()
+        model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
 
     has_pending = any(j.status in ("queued", "running") for j in jobs)
     ms = model_status_row.value if model_status_row else None
@@ -115,17 +105,8 @@ async def meetings_partial(
 ) -> Response:
     """Return the jobs list fragment for HTMX polling (SPEC 7.3)."""
     with next(get_db()) as session:
-        jobs = (
-            session.query(Job)
-            .filter(Job.kind == "summary")
-            .order_by(Job.id.desc())
-            .all()
-        )
-        model_status_row = (
-            session.query(AppState)
-            .filter(AppState.key == "model_status")
-            .first()
-        )
+        jobs = session.query(Job).filter(Job.kind == "summary").order_by(Job.id.desc()).all()
+        model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
 
     has_pending = any(j.status in ("queued", "running") for j in jobs)
     ms = model_status_row.value if model_status_row else None
@@ -152,12 +133,7 @@ async def meetings_upload(
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     if ext not in ("vtt", "docx"):
         with next(get_db()) as session:
-            jobs = (
-                session.query(Job)
-                .filter(Job.kind == "summary")
-                .order_by(Job.id.desc())
-                .all()
-            )
+            jobs = session.query(Job).filter(Job.kind == "summary").order_by(Job.id.desc()).all()
         today = today_local()
         return _meeting_templates.TemplateResponse(
             request,

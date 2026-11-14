@@ -70,7 +70,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_page_meetings_list.py -q
 
 ## Summaries
-- [ ] T27: `app/llm.py` `is_up` and `chat_json` per docs/summaries.md §LLM client (SPEC 7.5). Write `tests/test_llm.py` with MockTransport (request body has model, `chat_template_kwargs.enable_thinking == false`, `response_format.type == "json_schema"`, bearer header; 200 up / connect error down; bad JSON and wrong shape → `LlmError`).
+- [x] T27: `app/llm.py` `is_up` and `chat_json` per docs/summaries.md §LLM client (SPEC 7.5). Write `tests/test_llm.py` with MockTransport (request body has model, `chat_template_kwargs.enable_thinking == false`, `response_format.type == "json_schema"`, bearer header; 200 up / connect error down; bad JSON and wrong shape → `LlmError`).
   accept: cd backend && uv run pytest tests/test_llm.py -q
 - [ ] T28: `app/summarize.py` `summarize(transcript, client) -> Summary` for a transcript that fits in one call: the Dutch system prompt, the JSON schema from SPEC 7.5 as a pydantic model, and one retry when `chat_json` raises `LlmError` for bad output (raise `SummaryError` after the second). No chunking yet. Write `tests/test_summarize.py` with a fake `chat_json` (1 call for a short transcript, the transcript is in the user message, invalid then valid = success, invalid twice = `SummaryError`).
   accept: cd backend && uv run pytest tests/test_summarize.py -q

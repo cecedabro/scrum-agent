@@ -152,3 +152,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - `GET /meetings` now queries `AppState`, computes `model_state`, filters jobs by `kind="summary"`, passes to `_jobs.html`.
 - `_jobs.html` wraps jobs table in `<div class="jobs-wrapper">` with conditional HTMX polling attributes (`hx-get="/meetings/partial"`, `hx-trigger="every 10s"`, `hx-swap="outerHTML"`) only when `has_pending` is true.
 - All 19 tests pass (`make check` exit 0). Gotcha: use `ZoneInfo(TIMEZONE)` not `TIMEZONE` string directly for `astimezone()`; `_model_state_string` handles `ms=None` for the "nog nooit gezien" case.
+
+## T27
+- Created `backend/app/llm.py`: `LlmError` exception, `get_llm_client()` (returns httpx.Client with Bearer auth + timeout), `is_up()` (GET /models with 5s timeout, returns bool), and `chat_json(messages, schema, client)` (POST /chat/completions with model name, `chat_template_kwargs.enable_thinking=false`, `response_format.type="json_schema"`, parses JSON response, raises `LlmError` on HTTP errors, bad JSON, or wrong shape).
+- Created `backend/tests/test_llm.py` (17 tests): covers `is_up` (200→True, 404→False, timeout→False, connect error→False, no-client close path) and `chat_json` (request body structure with model name/enable_thinking/json_schema/bearer header/messages/params, response parsing, LlmError on bad JSON/missing choices/empty choices/missing message/HTTP 500/HTTP 401).
+- Used `httpx.MockTransport` with `base_url="http://127.0.0.1"` for all test clients to avoid URL resolution issues.
+- All 454 tests pass, 94% coverage, `make check` exit 0. Gotcha: mypy `no-any-return` requires `# type: ignore[no-any-return]` on `json.loads()` return; ruff B904 requires `from None` on raises inside except blocks. Next task T28 should implement the worker (`app/worker.py`) that queries `Job` rows with `SKIP LOCKED` and calls `chat_json()`.
