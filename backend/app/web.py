@@ -407,3 +407,23 @@ async def settings_test(
             "test_result": status_labels.get(status, status),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Privacy page (SPEC 8.4)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/privacy")
+async def privacy_page(
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Privacy page in Dutch (SPEC 8.4)."""
+    return templates.TemplateResponse(
+        request,
+        "privacy.html",
+        {
+            "page_title": "Privacy",
+        },
+    )

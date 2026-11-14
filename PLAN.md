@@ -94,7 +94,7 @@ Every task writes the test file its `accept:` names (in `backend/tests/`).
   accept: cd backend && uv run pytest tests/test_retention.py -q
 - [x] T37: Delete a meeting (SPEC 8.3): `POST /meetings/{id}/delete` → 303 to `/meetings`, 404 for unknown ids, and a delete button on the detail page. Write `tests/test_meeting_delete.py`.
   accept: cd backend && uv run pytest tests/test_meeting_delete.py -q
-- [ ] T38: `/privacy` page in Dutch (SPEC 8.4) with the contents of docs/privacy.md (what, where, how long, how to delete). Write `tests/test_page_privacy.py` (200 behind auth, each row of the table present, nav `aria-current`).
+- [x] T38: `/privacy` page in Dutch (SPEC 8.4) with the contents of docs/privacy.md (what, where, how long, how to delete). Write `tests/test_page_privacy.py` (200 behind auth, each row of the table present, nav `aria-current`).
   accept: cd backend && uv run pytest tests/test_page_privacy.py -q
 - [ ] T39: The `/` overview (docs/frontend.md): next 5 deadlines, last 3 summary jobs with status, model state. Move the empty-state text out of `base.html` into this page's own template. Write `tests/test_page_home.py`.
   accept: cd backend && uv run pytest tests/test_page_home.py -q
