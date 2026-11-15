@@ -25,15 +25,16 @@ def _git_tags() -> list[str]:
     return [t for t in result.stdout.strip().split("\n") if t]
 
 
-def _git_log_messages(count: int = 50) -> list[str]:
-    """Return recent commit subject lines (oldest first)."""
+def _git_log_messages(since: str | None = None) -> list[str]:
+    """Return the full messages of the commits after tag *since* (all commits when None)."""
+    rev = f"{since}..HEAD" if since else "HEAD"
     result = subprocess.run(  # noqa: S603
-        ["git", "log", f"-{count}", "--format=%s"],  # noqa: S607
+        ["git", "log", rev, "--format=%B%x00"],  # noqa: S607
         capture_output=True,
         text=True,
         check=True,
     )
-    return [m for m in result.stdout.strip().split("\n") if m]
+    return [m.strip() for m in result.stdout.split("\x00") if m.strip()]
 
 
 def next_version(
@@ -49,8 +50,6 @@ def next_version(
     """
     if tags is None:
         tags = _git_tags()
-    if commit_messages is None:
-        commit_messages = _git_log_messages()
 
     # 1. Find the latest semver tag
     semver_tags: list[tuple[int, int, int, str]] = []
@@ -64,7 +63,10 @@ def next_version(
 
     # Sort by (major, minor, patch) and pick the highest
     semver_tags.sort()
-    major, minor, patch, _ = semver_tags[-1]
+    major, minor, patch, latest = semver_tags[-1]
+    if commit_messages is None:
+        # Only the commits since the latest release count; older ones were already released.
+        commit_messages = _git_log_messages(since=latest)
 
     # 2. Determine bump level from commit messages
     bump = "patch"

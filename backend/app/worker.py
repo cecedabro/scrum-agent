@@ -262,15 +262,36 @@ def reset_stuck(session: Session, now: datetime) -> None:
 
 
 def main() -> None:
-    """Main loop: reset stuck jobs, then process one job per iteration."""
+    """Main loop: reset stuck jobs, then process one job per iteration.
+
+    Each iteration uses its own session, closed afterwards. An unexpected error is logged
+    and retried after a pause, so a database or network blip does not stop the worker.
+    """
+    import logging
+    import time
+
     from app.clock import now_utc
     from app.db import session_factory
 
-    reset_stuck(session_factory()(), now_utc())
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    log = logging.getLogger("worker")
+    log.info("worker started")
+
+    with session_factory()() as session:
+        reset_stuck(session, now_utc())
 
     while True:
-        result = run_once(session_factory()(), now_utc())
-        if result in ("idle", "model_offline"):
-            import time
-
+        try:
+            with session_factory()() as session:
+                result = run_once(session, now_utc())
+        except Exception:
+            log.exception("worker iteration failed")
+            result = "error"
+        if result != "idle":
+            log.info("worker: %s", result)
+        if result in ("idle", "model_offline", "error"):
             time.sleep(60)
+
+
+if __name__ == "__main__":
+    main()
