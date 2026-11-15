@@ -9,21 +9,24 @@
     <script src="/static/app.js"></script>
 </head>
 <body>
-    <nav aria-label="Hoofdnavigatie">
-        <ul>
-            <li><a href="/" {% if request.url.path == "/" %}aria-current="page"{% endif %}>Overzicht</a></li>
-            <li><a href="/deadlines" {% if request.url.path == "/deadlines" %}aria-current="page"{% endif %}>Deadlines</a></li>
-            <li><a href="/meetings" {% if request.url.path == "/meetings" %}aria-current="page"{% endif %}>Vergaderingen</a></li>
-            <li><a href="/settings" {% if request.url.path == "/settings" %}aria-current="page"{% endif %}>Instellingen</a></li>
-            <li><a href="/privacy" {% if request.url.path == "/privacy" %}aria-current="page"{% endif %}>Privacy</a></li>
-        </ul>
-    </nav>
-    <main>
+    <a class="skip-link" href="#inhoud">Naar de inhoud</a>
+    <header class="site-header">
+        <a class="brand" href="/">Scrum agent</a>
+        <nav aria-label="Hoofdnavigatie">
+            {% set nav_items = [("/", "Overzicht"), ("/deadlines", "Deadlines"), ("/meetings", "Vergaderingen"), ("/settings", "Instellingen"), ("/privacy", "Privacy")] %}
+            <ul>
+            {% for item in nav_items %}
+                <li><a href="{{ item[0] }}"{% if request.url.path == item[0] or (item[0] != "/" and request.url.path.startswith(item[0] + "/")) %} aria-current="page"{% endif %}>{{ item[1] }}</a></li>
+            {% endfor %}
+            </ul>
+        </nav>
+    </header>
+    <main id="inhoud" class="container">
         {% if page_title %}<h1>{{ page_title }}</h1>{% endif %}
         {% block content %}{% endblock %}
     </main>
-    <footer>
-        <p>Scrum agent &mdash; HvA</p>
+    <footer class="site-footer">
+        <p><a href="/privacy">Privacy</a> &mdash; <a href="/stijl">Stijlgids</a></p>
     </footer>
 </body>
 </html>
