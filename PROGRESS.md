@@ -279,3 +279,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 
 ## T54
 - Rewrote `backend/app/templates/base.html` per docs/frontend.md §Layout: skip link `<a class="skip-link" href="#inhoud">Naar de inhoud</a>` is first element in `<body>`, `<header class="site-header">` contains brand link and `<nav aria-label="Hoofdnavigatie">` with ONE loop over `nav_items` list (5 items: Overzicht, Deadlines, Vergaderingen, Instellingen, Privacy). Current link = exact path match, or starts-with for sub-paths (except `/`). `<main id="inhoud" class="container">`, `<footer class="site-footer">` with links to `/privacy` and `/stijl`. `aria-current` appears exactly once in source (inside the loop). All 697 tests pass, 92% coverage, `make check` exit 0.
+
+## T55
+- Rewrote `backend/app/templates/deadlines.html` (SPEC 3.4) to use `_ui.html` macros: deadline rows use a single `deadline_row(dl)` macro (no duplicate "Bewerken" text), list uses `<ul class="list">`/`<li class="list-item">`, forms use `ui.field` (title/due_date/due_time/note), add button uses `ui.button("Toevoegen", kind="primary")`, delete uses `ui.post_button(..., kind="danger")`. "Komende deadlines" heading always renders; "Geen komende deadlines." via `ui.empty` when no upcoming deadlines. Past deadlines inside `<details>`.
+- Rewrote `backend/app/templates/edit.html` (SPEC 3.4) to use `_ui.html` macros: forms use `ui.field` and `ui.button("Wijzigen", kind="primary")`.
+- Updated `backend/app/web.py` routes to use unified `deadline` dict (`{"id": ..., "data": {...}, "errors": {...}}`) instead of separate `errors`/`form_*` variables: `deadlines_page` (GET), `deadlines_add` (POST error), `deadlines_edit_get` (GET), `deadlines_edit_post` (POST error).
+- All 707 tests pass, 92% coverage, `make check` exit 0.

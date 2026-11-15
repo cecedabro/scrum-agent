@@ -76,11 +76,16 @@ async def deadlines_page(
             "upcoming_deadlines": upcoming_dl,
             "past_deadlines": past_dl,
             "today": today,
-            "form_title": "",
-            "form_due_date": "",
-            "form_due_time": "",
-            "form_note": "",
-            "errors": {},
+            "deadline": {
+                "id": None,
+                "data": {
+                    "title": "",
+                    "due_date": "",
+                    "due_time": "",
+                    "note": "",
+                },
+                "errors": {},
+            },
         },
     )
 
@@ -138,11 +143,16 @@ async def deadlines_add(
                     "upcoming_deadlines": upcoming_dl,
                     "past_deadlines": past_dl,
                     "today": today,
-                    "form_title": title,
-                    "form_due_date": due_date,
-                    "form_due_time": due_time,
-                    "form_note": note,
-                    "errors": errors,
+                    "deadline": {
+                        "id": None,
+                        "data": {
+                            "title": title,
+                            "due_date": due_date,
+                            "due_time": due_time,
+                            "note": note,
+                        },
+                        "errors": errors,
+                    },
                 },
                 status_code=422,
             )
@@ -169,12 +179,16 @@ async def deadlines_edit_get(
         request,
         "edit.html",
         {
-            "deadline": deadline,
-            "form_title": deadline.title,
-            "form_due_date": deadline.due_date.isoformat(),
-            "form_due_time": deadline.due_time.strftime("%H:%M") if deadline.due_time else "",
-            "form_note": deadline.note or "",
-            "errors": {},
+            "deadline": {
+                "id": deadline.id,
+                "data": {
+                    "title": deadline.title,
+                    "due_date": deadline.due_date.isoformat(),
+                    "due_time": deadline.due_time.strftime("%H:%M") if deadline.due_time else "",
+                    "note": deadline.note or "",
+                },
+                "errors": {},
+            },
         },
     )
 
@@ -222,12 +236,16 @@ async def deadlines_edit_post(
                 request,
                 "edit.html",
                 {
-                    "deadline": deadline,
-                    "form_title": title,
-                    "form_due_date": due_date,
-                    "form_due_time": due_time,
-                    "form_note": note,
-                    "errors": errors,
+                    "deadline": {
+                        "id": deadline.id,
+                        "data": {
+                            "title": title,
+                            "due_date": due_date,
+                            "due_time": due_time,
+                            "note": note,
+                        },
+                        "errors": errors,
+                    },
                 },
             )
 
