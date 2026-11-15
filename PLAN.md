@@ -134,7 +134,7 @@ first, do not change it, make it pass. Keep the existing page tests passing too.
   accept: cd backend && uv run pytest tests/test_ui_env.py -q
 - [x] T52: Design tokens: put the `:root` block from docs/frontend.md §Tokens at the very top of `static/app.css` (exact names and values) and replace every colour, font family, radius and the main spacing in the rest of the file with `var(--…)`; `body` gets `background: var(--color-bg)`. No colour literal may remain outside `:root`. Edit the CSS in small steps.
   accept: cd backend && uv run pytest tests/test_ui_tokens.py -q
-- [ ] T53: `templates/_ui.html` with the macros `badge`, `field`, `button`, `post_button`, `empty`, `card`, `when`, `model_state`, `alert`, exactly per docs/frontend.md §Components (the test renders each one). Do not change pages yet.
+- [x] T53: `templates/_ui.html` with the macros `badge`, `field`, `button`, `post_button`, `empty`, `card`, `when`, `model_state`, `alert`, exactly per docs/frontend.md §Components (the test renders each one). Do not change pages yet.
   accept: cd backend && uv run pytest tests/test_ui_components.py -q
 - [ ] T54: `base.html` per docs/frontend.md §Layout: skip link first in `<body>`, `<header class="site-header">` with the brand and the nav rendered by ONE loop over `nav_items` (current = own path, or below it except `/`), `<main id="inhoud" class="container">`, `<footer class="site-footer">` with links to `/privacy` and `/stijl`.
   accept: cd backend && uv run pytest tests/test_ui_layout.py tests/test_base_template.py -q
