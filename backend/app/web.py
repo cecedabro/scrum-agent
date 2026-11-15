@@ -441,3 +441,35 @@ async def privacy_page(
             "page_title": "Privacy",
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Style guide (not in nav, linked from footer)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stijl")
+async def style_guide(
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Style guide page showing every component in every variant."""
+    from datetime import date, time
+
+    today = date(2026, 11, 16)
+    d1 = date(2026, 11, 17)
+    d2 = date(2026, 11, 18)
+    t1 = time(9, 30)
+    t2 = time(14, 0)
+    return templates.TemplateResponse(
+        request,
+        "stijl.html",
+        {
+            "page_title": "Stijlgids",
+            "today": today,
+            "d1": d1,
+            "d2": d2,
+            "t1": t1,
+            "t2": t2,
+        },
+    )

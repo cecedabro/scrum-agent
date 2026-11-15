@@ -386,3 +386,8 @@ data intact after upgrade
 
 == all migration checks passed
 Summary: 9 resources found parsing stdin - Valid: 7, Invalid: 0, Errors: 0, Skipped: 2 passes (lint, mypy, coverage ≥90%, bandit). No raw input/select/textarea/style literals remain in templates.
+
+## T59
+- Added `GET /stijl` route in `app/web.py` (behind auth, not in nav, linked from footer already present in `base.html`).
+- Created `templates/stijl.html` showing every component in every variant: 4 status badges + unknown (neutral), 3 button kinds, a post_button, text/date/textarea/select/checkbox fields (one with hint, one with error), card with/without title, list with two rows using `ui.when` (with `<time>` and `relative` span), both model states, 3 alerts, and an empty state.
+- Route passes `today`, `d1`, `d2`, `t1`, `t2` (date/time objects for `ui.when` rendering).
