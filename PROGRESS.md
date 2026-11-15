@@ -292,3 +292,95 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Rewrote `backend/app/templates/meeting_detail.html`: replaced `<table>` with `ui.badge`, `ui.card` sections for summary/decisions/action_items/questions, formatted action items as `"owner: taak (due)"` (raw dicts never rendered), used `ui.post_button` for delete/post, removed inline `<h1>`.
 - Updated `backend/app/meetings.py`: added `"up": bool(ms and ms.get("up"))` to all 4 `TemplateResponse` context dicts in `meetings_page`, `meetings_partial`, and `meetings_upload` error paths so `_jobs.html` receives `up` for `ui.model_state`.
 - All 773 tests pass, 92% coverage, `make check` exit 0.
+- Completed T57 (refactor HTML templates to UI macros). Fixed `settings.html`: removed unsupported `placeholder` from `ui.field` calls, refactored error handling to iterate over `validate_settings()` list of strings and render via `ui.alert(kind="danger")`. All T57 tests (7/7) and page tests (52/52) pass. `make check` exit 0.
+All checks passed!
+Success: no issues found in 26 source files
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 62%]
+........................................................................ [ 71%]
+........................................................................ [ 80%]
+...............sssssssssssssssssssssssssssssssssssssssssss.............. [ 89%]
+..................sssssssssssssssssssssssssssssssssssssss............... [ 98%]
+................                                                         [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/starlette/testclient.py:51
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/starlette/testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+tests/test_auth.py::test_success_with_valid_credentials
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/platformdirs/api.py:467: RuntimeDirWarning: XDG_RUNTIME_DIR is not set, falling back to /tmp/runtime-1000
+    return Path(self.user_runtime_dir)
+
+tests/test_auth.py::test_success_with_valid_credentials
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/alembic/config.py:598: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/test_cards.py::test_card
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_cards.py::test_card returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.2-final-0 ________________
+
+Name                 Stmts   Miss  Cover
+----------------------------------------
+app/__init__.py          0      0   100%
+app/answers.py          37      0   100%
+app/ask.py              30      5    83%
+app/auth.py             73      3    96%
+app/cards.py            88      0   100%
+app/clock.py            24      2    92%
+app/config.py           41      0   100%
+app/db.py               13      0   100%
+app/deadlines.py       123      3    98%
+app/fmt.py              42      5    88%
+app/llm.py              60     14    77%
+app/main.py             71      1    99%
+app/meetings.py        135      6    96%
+app/models.py           54      0   100%
+app/paths.py             4      0   100%
+app/retention.py        41      0   100%
+app/schedule.py        109     23    79%
+app/settings.py         97      8    92%
+app/summarize.py        89     11    88%
+app/teams.py           106      2    98%
+app/teams_in.py         83     26    69%
+app/templating.py       16      0   100%
+app/tick.py             58      4    93%
+app/transcripts.py      97      0   100%
+app/web.py             163      2    99%
+app/worker.py          159     31    81%
+----------------------------------------
+TOTAL                 1813    146    92%
+Required test coverage of 90% reached. Total coverage: 91.95%
+726 passed, 82 skipped, 4 warnings in 42.61s
+
+== one migration head
+
+== upgrade an empty database to head
+
+== models match the migrations (alembic check)
+No new upgrade operations detected.
+
+== upgrade head again is a no-op
+
+== downgrade to base and back up
+
+== existing data survives upgrading to head
+seeded 1 deadline
+data intact after upgrade
+
+== upgrade from the last release (v1.0.0) with its data
+seeded 1 deadline
+data intact after upgrade
+
+== all migration checks passed
+Summary: 9 resources found parsing stdin - Valid: 7, Invalid: 0, Errors: 0, Skipped: 2 passes (lint, mypy, coverage ≥90%, bandit). No raw input/select/textarea/style literals remain in templates.

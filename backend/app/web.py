@@ -39,6 +39,7 @@ async def index(request: Request, _auth: None = Depends(require_team)) -> Respon
         model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
         ms = model_status_row.value if model_status_row else None
         model_state = _model_state_string(ms)
+        model_up = bool(ms and ms.get("up"))
 
     return templates.TemplateResponse(
         request,
@@ -48,6 +49,7 @@ async def index(request: Request, _auth: None = Depends(require_team)) -> Respon
             "last_jobs": last_jobs,
             "STATUS_LABELS": STATUS_LABELS,
             "model_state": model_state,
+            "model_up": model_up,
             "today": today,
         },
     )

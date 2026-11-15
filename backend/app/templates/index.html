@@ -1,62 +1,45 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}Overzicht — Scrum agent{% endblock %}
 {% block content %}
 
 <h1>Overzicht</h1>
 
-<section>
-    <h2>Komende deadlines</h2>
-    {% if next_deadlines %}
-    <table>
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Titel</th>
-                <th>Acties</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dl in next_deadlines %}
-            <tr>
-                <td>{{ datum(dl.due_date) }}{% if dl.due_time %} om {{ dl.due_time.strftime('%H:%M') }}{% endif %} ({{ relatief(dl.due_date, today) }})</td>
-                <td>{{ dl.title }}</td>
-                <td><a href="/deadlines/{{ dl.id }}/edit">Bewerken</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="empty-state">Geen deadlines om te bekijken.</p>
-    {% endif %}
-</section>
+{% call ui.card("Komende deadlines") %}
+{% if next_deadlines %}
+<ul class="list">
+{% for dl in next_deadlines %}
+<li class="list-item">
+  <strong>{{ dl.title }}</strong>
+  {{ ui.when(dl.due_date, dl.due_time, today) }}
+  <p class="actions">
+    <a href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
+  </p>
+</li>
+{% endfor %}
+</ul>
+{% else %}
+{{ ui.empty("Geen deadlines om te bekijken.") }}
+{% endif %}
+{% endcall %}
 
-<section>
-    <h2>Laatste vergaderingen</h2>
-    {% if model_state %}
-    <p class="model-state">{{ model_state }}</p>
-    {% endif %}
-    {% if last_jobs %}
-    <table>
-        <thead>
-            <tr>
-                <th>Status</th>
-                <th>Titel</th>
-                <th>Datum</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for job in last_jobs %}
-            <tr>
-                <td>{{ STATUS_LABELS.get(job.status, job.status) }}</td>
-                <td><a href="/meetings/{{ job.id }}">{{ job.title }}</a></td>
-                <td>{{ job.meeting_date | datum_kort }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="empty-state">Nog geen vergaderingen.</p>
-    {% endif %}
-</section>
+{% call ui.card("Laatste vergaderingen") %}
+{% if model_state %}
+{{ ui.model_state(model_up, model_state) }}
+{% endif %}
+{% if last_jobs %}
+<ul class="list">
+{% for job in last_jobs %}
+<li class="list-item">
+  <span class="list-badge">{{ ui.badge(job.status) }}</span>
+  <span class="list-title"><a href="/meetings/{{ job.id }}">{{ job.title }}</a></span>
+  <span class="list-date">{{ job.meeting_date | datum_kort }}</span>
+</li>
+{% endfor %}
+</ul>
+{% else %}
+{{ ui.empty("Nog geen vergaderingen.") }}
+{% endif %}
+{% endcall %}
 
 {% endblock %}

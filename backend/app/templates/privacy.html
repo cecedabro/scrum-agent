@@ -1,75 +1,80 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block content %}
-<div class="privacy">
-    <h2>Wat is privacy?</h2>
-    <p>Het team heeft overeenstemming bereikt over het gebruik van deze tool. Alles draait op C&eacute;dric's eigen hardware (een k3s homelab en een pc thuis); geen externe AI-service ziet gegevens. Het enige dat weggaat is wat naar het eigen Teams-kanaal wordt gepost.</p>
 
-    <h2>Wat er wordt opgeslagen, en hoe lang</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Gegevens</th>
-                <th>Waar</th>
-                <th>Bewaard</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Deadlines (titel, datum, tijd, notitie)</td>
-                <td>Postgres op de homelab</td>
-                <td>tot 60 dagen na de deadline (<code>DEADLINE_RETENTION_DAYS</code>)</td>
-            </tr>
-            <tr>
-                <td>Herkinneringsinstellingen</td>
-                <td>Postgres</td>
-                <td>tot wijziging</td>
-            </tr>
-            <tr>
-                <td>Geupload transcriptbestand</td>
-                <td>nergens: in het geheugen verwerkt, nooit naar schijf</td>
-                <td>&mdash;</td>
-            </tr>
-            <tr>
-                <td>Transcripttekst (sprakers + wat ze zeiden)</td>
-                <td>Postgres, <code>job.transcript</code></td>
-                <td>tot de samenvatting gemaakt is; een mislukt job na 7 dagen</td>
-            </tr>
-            <tr>
-                <td>Vergadersamenvatting (beslissingen, actiepunten met namen)</td>
-                <td>Postgres, <code>job.result</code></td>
-                <td>180 dagen (<code>SUMMARY_RETENTION_DAYS</code>)</td>
-            </tr>
-            <tr>
-                <td>Vragen aan <code>@Agent</code> die het model nodig hebben (vraagtekst en antwoord, zonder afzender)</td>
-                <td>Postgres, <code>job</code> met kind <code>vraag</code></td>
-                <td>30 dagen</td>
-            </tr>
-            <tr>
-                <td>Postlogboek (wat er wanneer gepost; geen berichttekst)</td>
-                <td>Postgres</td>
-                <td>180 dagen (<code>POST_LOG_RETENTION_DAYS</code>)</td>
-            </tr>
-            <tr>
-                <td>Posts in Teams</td>
-                <td>Microsoft Teams (de tenant van de school)</td>
-                <td> eigen regels van Teams; verwijder een bericht in Teams</td>
-            </tr>
-        </tbody>
-    </table>
+{% call ui.card("Wat is privacy?") %}
+<p>Het team heeft overeenstemming bereikt over het gebruik van deze tool. Alles draait op C&eacute;dric's eigen hardware (een k3s homelab en een pc thuis); geen externe AI-service ziet gegevens. Het enige dat weggaat is wat naar het eigen Teams-kanaal wordt gepost.</p>
+{% endcall %}
 
-    <p>Het model (<code>coder</code>, llama-server op de pc) ontvangt de transcripttekst tijdens het maken van een samenvatting, of een vraag met de deadlines en de laatste 3 samenvattingen tijdens het beantwoorden, en bewaart daarna niets. Eenvoudige vragen (deadlines, sprint, hulp) bereiken het model niet. App-logs bevatten geen transcripttekst, samenvattingen, wachtwoorden of de webhook-URL; het cluster bewaart logs slechts zolang de pods bestaan.</p>
+{% call ui.card("Wat er wordt opgeslagen, en hoe lang") %}
+<table>
+    <thead>
+        <tr>
+            <th>Gegevens</th>
+            <th>Waar</th>
+            <th>Bewaard</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Deadlines (titel, datum, tijd, notitie)</td>
+            <td>Postgres op de homelab</td>
+            <td>tot 60 dagen na de deadline (<code>DEADLINE_RETENTION_DAYS</code>)</td>
+        </tr>
+        <tr>
+            <td>Herkinneringsinstellingen</td>
+            <td>Postgres</td>
+            <td>tot wijziging</td>
+        </tr>
+        <tr>
+            <td>Geupload transcriptbestand</td>
+            <td>nergens: in het geheugen verwerkt, nooit naar schijf</td>
+            <td>&mdash;</td>
+        </tr>
+        <tr>
+            <td>Transcripttekst (sprakers + wat ze zeiden)</td>
+            <td>Postgres, <code>job.transcript</code></td>
+            <td>tot de samenvatting gemaakt is; een mislukt job na 7 dagen</td>
+        </tr>
+        <tr>
+            <td>Vergadersamenvatting (beslissingen, actiepunten met namen)</td>
+            <td>Postgres, <code>job.result</code></td>
+            <td>180 dagen (<code>SUMMARY_RETENTION_DAYS</code>)</td>
+        </tr>
+        <tr>
+            <td>Vragen aan <code>@Agent</code> die het model nodig hebben (vraagtekst en antwoord, zonder afzender)</td>
+            <td>Postgres, <code>job</code> met kind <code>vraag</code></td>
+            <td>30 dagen</td>
+        </tr>
+        <tr>
+            <td>Postlogboek (wat er wanneer gepost; geen berichttekst)</td>
+            <td>Postgres</td>
+            <td>180 dagen (<code>POST_LOG_RETENTION_DAYS</code>)</td>
+        </tr>
+        <tr>
+            <td>Posts in Teams</td>
+            <td>Microsoft Teams (de tenant van de school)</td>
+            <td> eigen regels van Teams; verwijder een bericht in Teams</td>
+        </tr>
+    </tbody>
+</table>
 
-    <h2>Wie kan het zien</h2>
-    <p>Iedereen met het teamwachtwoord (de webpagina) en de leden van het Teams-kanaal (de posts). De repo is publiek maar bevat geen teamgegevens: geen namen, geen transcripten, geen geheimen. De monstertranscripten in <code>tests/fixtures/</code> zijn verzonnen.</p>
+<p>Het model (<code>coder</code>, llama-server op de pc) ontvangt de transcripttekst tijdens het maken van een samenvatting, of een vraag met de deadlines en de laatste 3 samenvattingen tijdens het beantwoorden, en bewaart daarna niets. Eenvoudige vragen (deadlines, sprint, hulp) bereiken het model niet. App-logs bevatten geen transcripttekst, samenvattingen, wachtwoorden of de webhook-URL; het cluster bewaart logs slechts zolang de pods bestaan.</p>
+{% endcall %}
 
-    <h2>Hoe verwijderen</h2>
-    <ul>
-        <li>&Eacute;&eacute;n vergadering of deadline: de knop Verwijderen op de webpagina (direct).</li>
-        <li>Alles: <code>kubectl --context homelab -n scrum-agent exec scrum-agent-db-0 -- psql -U scrum -d scrum -c 'TRUNCATE job, deadline, post_log, app_state;'</code>.</li>
-        <li>De hele app: <code>apps/scrum-agent</code> verwijderen uit de homelab repo, dan <code>kubectl --context homelab delete ns scrum-agent</code> (verwijdert ook het databasevolume).</li>
-        <li>Databaseback-ups: de Longhorn-back-ups van de homelab volgen hun eigen planning; verwijderde rijen verdwijnen zodra de oudste backup die ze nog bevat verloopt.</li>
-    </ul>
+{% call ui.card("Wie kan het zien") %}
+<p>Iedereen met het teamwachtwoord (de webpagina) en de leden van het Teams-kanaal (de posts). De repo is publiek maar bevat geen teamgegevens: geen namen, geen transcripten, geen geheimen. De monstertranscripten in <code>tests/fixtures/</code> zijn verzonnen.</p>
+{% endcall %}
 
-    <p>Een teamlid dat zijn gegevens verwijderd wil, vraagt C&eacute;dric, die de bijpassende vergaderingen verwijdert.</p>
-</div>
+{% call ui.card("Hoe verwijderen") %}
+<ul>
+    <li>&Eacute;&eacute;n vergadering of deadline: de knop Verwijderen op de webpagina (direct).</li>
+    <li>Alles: <code>kubectl --context homelab -n scrum-agent exec scrum-agent-db-0 -- psql -U scrum -d scrum -c 'TRUNCATE job, deadline, post_log, app_state;'</code>.</li>
+    <li>De hele app: <code>apps/scrum-agent</code> verwijderen uit de homelab repo, dan <code>kubectl --context homelab delete ns scrum-agent</code> (verwijdert ook het databasevolume).</li>
+    <li>Databaseback-ups: de Longhorn-back-ups van de homelab volgen hun eigen planning; verwijderde rijen verdwijnen zodra de oudste backup die ze nog bevat verloopt.</li>
+</ul>
+
+<p>Een teamlid dat zijn gegevens verwijderd wil, vraagt C&eacute;dric, die de bijpassende vergaderingen verwijdert.</p>
+{% endcall %}
+
 {% endblock %}
