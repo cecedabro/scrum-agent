@@ -266,3 +266,131 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_answers.py` (20 tests): covers help/hulp/HULP, "wat zijn de deadlines?", "deadlines deze week" on Monday & Sunday, 10-line cap, empty deadlines, sprint on/off, lines with/without time, past deadlines excluded, `None` fallback, format checks (datum_kort, time, relatief labels).
 - All 635 tests pass, 94% total coverage, `make check` exit 0.
 - Gotcha: deadline dicts passed to `quick_answer` do not include `datum_kort` — the function calls `datum_kort(d["due_date"])` directly. The `typing.Any` import is required for `list[dict[str, Any]]` to satisfy mypy.
+
+## T52
+- Replaced all hardcoded colours, font families, border-radius, and spacing in `backend/app/static/app.css` with CSS design tokens. Put the `:root` token block at the very top of the file (before any selector) with the exact names/values from `docs/frontend.md` §Tokens. Added `--font-sans` and `--shadow` tokens; added `--max-width` for consistency.
+- `body` gets `background: var(--color-bg)`. Every `var(--color-bg)`, `var(--color-text)`, `var(--color-accent)`, `var(--font-sans)`, and `var(--radius)` is used in rules outside `:root`. No colour literals remain outside `:root`.
+- Token mapping: text→`--color-text`, surfaces→`--color-surface`, page bg→`--color-bg`, borders→`--color-border`, accent→`--color-accent`, accent hover→`--color-accent-hover`, soft variants→`--color-*-soft`, badge colours→`--color-neutral-soft`/`--color-success-soft`/`--color-danger-soft`, font-size→`--font-size-*`, spacing→`--space-*`, radius→`--radius-sm`.
+- Gotcha: `main` rule includes `border-radius: var(--radius)` to satisfy the test requirement that `var(--radius)` appears in the file body. The `.container` class (on `<main id="inhoud">`) is the logical place for this. All 667 tests pass, 92% coverage, `make check` exit 0.
+
+## T53
+- Created `backend/app/templates/_ui.html` with 9 Jinja macros: `badge` (STATUS_LABELS mapping, fallback to `badge-neutral`), `field` (text/textarea/select/checkbox with `aria-invalid`/`aria-describedby` on error, hint before error, xmlattr for extra attrs), `button` (primary/secondary/danger kinds), `post_button` (inline-form wrapper), `empty`, `card` (section + optional h2.card-title, uses `{{ caller() }}`), `when` (time element with datetime=YYYY-MM-DD or YYYY-MM-DDTHH:MM, Dutch date via `datum()`, relative span via `relatief()`), `model_state` (up/down classes + dot span), `alert` (info/success/danger with role="status"). All macros use Jinja2 `autoescape` for proper HTML escaping.
+- All 671 tests pass, 92% coverage, `make check` exit 0.
+
+## T54
+- Rewrote `backend/app/templates/base.html` per docs/frontend.md §Layout: skip link `<a class="skip-link" href="#inhoud">Naar de inhoud</a>` is first element in `<body>`, `<header class="site-header">` contains brand link and `<nav aria-label="Hoofdnavigatie">` with ONE loop over `nav_items` list (5 items: Overzicht, Deadlines, Vergaderingen, Instellingen, Privacy). Current link = exact path match, or starts-with for sub-paths (except `/`). `<main id="inhoud" class="container">`, `<footer class="site-footer">` with links to `/privacy` and `/stijl`. `aria-current` appears exactly once in source (inside the loop). All 697 tests pass, 92% coverage, `make check` exit 0.
+
+## T55
+- Rewrote `backend/app/templates/deadlines.html` (SPEC 3.4) to use `_ui.html` macros: deadline rows use a single `deadline_row(dl)` macro (no duplicate "Bewerken" text), list uses `<ul class="list">`/`<li class="list-item">`, forms use `ui.field` (title/due_date/due_time/note), add button uses `ui.button("Toevoegen", kind="primary")`, delete uses `ui.post_button(..., kind="danger")`. "Komende deadlines" heading always renders; "Geen komende deadlines." via `ui.empty` when no upcoming deadlines. Past deadlines inside `<details>`.
+- Rewrote `backend/app/templates/edit.html` (SPEC 3.4) to use `_ui.html` macros: forms use `ui.field` and `ui.button("Wijzigen", kind="primary")`.
+- Updated `backend/app/web.py` routes to use unified `deadline` dict (`{"id": ..., "data": {...}, "errors": {...}}`) instead of separate `errors`/`form_*` variables: `deadlines_page` (GET), `deadlines_add` (POST error), `deadlines_edit_get` (GET), `deadlines_edit_post` (POST error).
+- All 707 tests pass, 92% coverage, `make check` exit 0.
+
+## T56
+- Rewrote `backend/app/templates/meetings.html`: replaced manual form fields with `ui.field` (file input uses `attrs={"accept": ".vtt,.docx"}` since `ui.field` macro does not forward a bare `accept` param), `ui.button("Uploaden", kind="primary")`, error loop, removed inline `<h1>` (base.html handles `page_title`).
+- Rewrote `backend/app/templates/_jobs.html`: replaced `<table>` with `<ul class="list">`/`<li class="list-item">`, uses `ui.badge(job.status)`, `ui.model_state(up, model_state)`, `ui.empty`; HTMX polling (`hx-trigger="every 10s"`) wrapped in `{% if has_pending %}`.
+- Rewrote `backend/app/templates/meeting_detail.html`: replaced `<table>` with `ui.badge`, `ui.card` sections for summary/decisions/action_items/questions, formatted action items as `"owner: taak (due)"` (raw dicts never rendered), used `ui.post_button` for delete/post, removed inline `<h1>`.
+- Updated `backend/app/meetings.py`: added `"up": bool(ms and ms.get("up"))` to all 4 `TemplateResponse` context dicts in `meetings_page`, `meetings_partial`, and `meetings_upload` error paths so `_jobs.html` receives `up` for `ui.model_state`.
+- All 773 tests pass, 92% coverage, `make check` exit 0.
+- Completed T57 (refactor HTML templates to UI macros). Fixed `settings.html`: removed unsupported `placeholder` from `ui.field` calls, refactored error handling to iterate over `validate_settings()` list of strings and render via `ui.alert(kind="danger")`. All T57 tests (7/7) and page tests (52/52) pass. `make check` exit 0.
+## T58
+- Rewrote `backend/app/static/app.css`: all design tokens in `:root` block remain at top. Removed unused `.badge-grey`, `.badge-blue`, `.badge-green` rules. Styled every layout/component class: `.skip-link` (hidden until focused), `.site-header` (flex, wraps below 640px), `.brand`, `.container`, `.site-footer`, `.card`/`.card-title`, `.list`/`.list-item` (flex rows, stacking on small screens), `.relative`, `.empty-state`, `.field`/`.field-invalid`/`.field-check`/`.hint`/`.error`, `.btn`/`.btn-primary`/`.btn-secondary`/`.btn-danger`, `.inline-form`, `.badge`/`.badge-queued`/`.badge-running`/`.badge-done`/`.badge-failed`/`.badge-neutral` (pill-shaped, token-backed), `.model-state`/`.model-state-up`/`.model-state-down`/`.dot`, `.alert`/`.alert-info`/`.alert-success`/`.alert-danger`, plus `.jobs-wrapper`, `.list-badge`, `.list-title`, `.list-date`, `.list-error`, `.note`, `.actions`, `.test-result`. Added `*:focus-visible` outline in accent color. Added `@media (max-width: 640px)` for header/nav wrapping and list-item stacking. Zero colour literals outside `:root`. All 47 UI tests pass, `make check` exit 0.
+All checks passed!
+Success: no issues found in 26 source files
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 62%]
+........................................................................ [ 71%]
+........................................................................ [ 80%]
+...............sssssssssssssssssssssssssssssssssssssssssss.............. [ 89%]
+..................sssssssssssssssssssssssssssssssssssssss............... [ 98%]
+................                                                         [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/starlette/testclient.py:51
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/starlette/testclient.py:51: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+tests/test_auth.py::test_success_with_valid_credentials
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/platformdirs/api.py:467: RuntimeDirWarning: XDG_RUNTIME_DIR is not set, falling back to /tmp/runtime-1000
+    return Path(self.user_runtime_dir)
+
+tests/test_auth.py::test_success_with_valid_credentials
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/alembic/config.py:598: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/test_cards.py::test_card
+  /home/agent/repos/scrum-agent/backend/.venv/lib/python3.11/site-packages/_pytest/python.py:161: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_cards.py::test_card returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.2-final-0 ________________
+
+Name                 Stmts   Miss  Cover
+----------------------------------------
+app/__init__.py          0      0   100%
+app/answers.py          37      0   100%
+app/ask.py              30      5    83%
+app/auth.py             73      3    96%
+app/cards.py            88      0   100%
+app/clock.py            24      2    92%
+app/config.py           41      0   100%
+app/db.py               13      0   100%
+app/deadlines.py       123      3    98%
+app/fmt.py              42      5    88%
+app/llm.py              60     14    77%
+app/main.py             71      1    99%
+app/meetings.py        135      6    96%
+app/models.py           54      0   100%
+app/paths.py             4      0   100%
+app/retention.py        41      0   100%
+app/schedule.py        109     23    79%
+app/settings.py         97      8    92%
+app/summarize.py        89     11    88%
+app/teams.py           106      2    98%
+app/teams_in.py         83     26    69%
+app/templating.py       16      0   100%
+app/tick.py             58      4    93%
+app/transcripts.py      97      0   100%
+app/web.py             163      2    99%
+app/worker.py          159     31    81%
+----------------------------------------
+TOTAL                 1813    146    92%
+Required test coverage of 90% reached. Total coverage: 91.95%
+726 passed, 82 skipped, 4 warnings in 42.61s
+
+== one migration head
+
+== upgrade an empty database to head
+
+== models match the migrations (alembic check)
+No new upgrade operations detected.
+
+== upgrade head again is a no-op
+
+== downgrade to base and back up
+
+== existing data survives upgrading to head
+seeded 1 deadline
+data intact after upgrade
+
+== upgrade from the last release (v1.0.0) with its data
+seeded 1 deadline
+data intact after upgrade
+
+== all migration checks passed
+Summary: 9 resources found parsing stdin - Valid: 7, Invalid: 0, Errors: 0, Skipped: 2 passes (lint, mypy, coverage ≥90%, bandit). No raw input/select/textarea/style literals remain in templates.
+
+## T59
+- Added `GET /stijl` route in `app/web.py` (behind auth, not in nav, linked from footer already present in `base.html`).
+- Created `templates/stijl.html` showing every component in every variant: 4 status badges + unknown (neutral), 3 button kinds, a post_button, text/date/textarea/select/checkbox fields (one with hint, one with error), card with/without title, list with two rows using `ui.when` (with `<time>` and `relative` span), both model states, 3 alerts, and an empty state.
+- Route passes `today`, `d1`, `d2`, `t1`, `t2` (date/time objects for `ui.when` rendering).
+
+## T60
+- All 32 `test_ui_rules.py` checks pass and `make check` exits 0: no inline `style=` in any template, form controls (`<input>`, `<textarea>`, `<select>`) only in `_ui.html`, every page extends `base.html` and imports `_ui.html`, exactly one `<h1>` per page (verified via HTTP), no colour literals outside `:root` in `app.css`, single Jinja environment in `templating.py`. No code changes were needed — the T52–T58 refactors already established all design-system rules.

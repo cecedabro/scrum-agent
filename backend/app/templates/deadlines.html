@@ -1,88 +1,49 @@
 {% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
 {% block title %}Deadlines — Scrum agent{% endblock %}
 {% block content %}
+{% macro deadline_row(dl) %}
+<li class="list-item">
+  <strong>{{ dl.title }}</strong>
+  {{ ui.when(dl.due_date, dl.due_time, today) }}
+  {% if dl.note %}<p class="note">{{ dl.note }}</p>{% endif %}
+  <p class="actions">
+    <a href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
+    {{ ui.post_button("/deadlines/" ~ dl.id ~ "/delete", "Verwijderen", kind="danger") }}
+  </p>
+</li>
+{% endmacro %}
+
 <h1>Deadlines</h1>
 
 <h2>Komende deadlines</h2>
 {% if upcoming_deadlines %}
-<table>
-    <thead>
-        <tr>
-            <th>Datum</th>
-            <th>Titel</th>
-            <th>Notitie</th>
-            <th>Acties</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for dl in upcoming_deadlines %}
-        <tr>
-            <td>{{ datum(dl.due_date) }}{% if dl.due_time %} om {{ dl.due_time.strftime('%H:%M') }}{% endif %} ({{ relatief(dl.due_date, today) }})</td>
-            <td>{{ dl.title }}</td>
-            <td>{{ dl.note or '' }}</td>
-            <td>
-                <a href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
-                <form method="post" action="/deadlines/{{ dl.id }}/delete" class="delete-form" style="display:inline;">
-                    <button type="submit">Verwijderen</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<ul class="list">
+{% for dl in upcoming_deadlines %}
+  {{ deadline_row(dl) }}
+{% endfor %}
+</ul>
 {% else %}
-<p class="empty-state">Geen komende deadlines.</p>
+{{ ui.empty("Geen komende deadlines.") }}
 {% endif %}
 
 {% if past_deadlines %}
 <details>
-    <summary>Vergane deadlines</summary>
-    <table>
-        <thead>
-            <tr>
-                <th>Datum</th>
-                <th>Titel</th>
-                <th>Notitie</th>
-                <th>Acties</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dl in past_deadlines %}
-            <tr>
-                <td>{{ datum(dl.due_date) }}{% if dl.due_time %} om {{ dl.due_time.strftime('%H:%M') }}{% endif %} ({{ relatief(dl.due_date, today) }})</td>
-                <td>{{ dl.title }}</td>
-                <td>{{ dl.note or '' }}</td>
-                <td>
-                    <a href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
-                    <form method="post" action="/deadlines/{{ dl.id }}/delete" class="delete-form" style="display:inline;">
-                        <button type="submit">Verwijderen</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<summary>Vergane deadlines</summary>
+<ul class="list">
+{% for dl in past_deadlines %}
+  {{ deadline_row(dl) }}
+{% endfor %}
+</ul>
 </details>
 {% endif %}
 
 <h2>Deadline toevoegen</h2>
 <form method="post" action="/deadlines">
-    <label for="title">Titel (1–200 tekens):</label>
-    <input type="text" id="title" name="title" value="{{ form_title or '' }}" required>
-    {% if errors and errors.get('title') %}<span class="error">{{ errors.title }}</span>{% endif %}
-
-    <label for="due_date">Vervaldatum:</label>
-    <input type="date" id="due_date" name="due_date" value="{{ form_due_date or '' }}" required>
-    {% if errors and errors.get('due_date') %}<span class="error">{{ errors.due_date }}</span>{% endif %}
-
-    <label for="due_time">Vervaltijd (optioneel, HH:MM):</label>
-    <input type="time" id="due_time" name="due_time" value="{{ form_due_time or '' }}">
-    {% if errors and errors.get('due_time') %}<span class="error">{{ errors.due_time }}</span>{% endif %}
-
-    <label for="note">Notitie (optioneel, max 1000 tekens):</label>
-    <textarea id="note" name="note" rows="3">{{ form_note or '' }}</textarea>
-    {% if errors and errors.get('note') %}<span class="error">{{ errors.note }}</span>{% endif %}
-
-    <button type="submit">Toevoegen</button>
+  {{ ui.field("title", "Titel (1-200 tekens):", value=deadline.data.get("title", ""), error=deadline.errors.get("title")) }}
+  {{ ui.field("due_date", "Vervaldatum:", type="date", value=deadline.data.get("due_date", ""), error=deadline.errors.get("due_date")) }}
+  {{ ui.field("due_time", "Vervaltijd (optioneel, HH:MM):", type="time", value=deadline.data.get("due_time", ""), error=deadline.errors.get("due_time")) }}
+  {{ ui.field("note", "Notitie (optioneel, max 1000 tekens):", type="textarea", value=deadline.data.get("note", ""), error=deadline.errors.get("note")) }}
+  {{ ui.button("Toevoegen", kind="primary") }}
 </form>
 {% endblock %}

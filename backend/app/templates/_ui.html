@@ -1,0 +1,91 @@
+{# Component macros – see docs/frontend.md §Components. #}
+
+{% macro badge(status) %}
+{% set label = STATUS_LABELS.get(status) %}
+{% if label is not none %}
+<span class="badge badge-{{ status }}">{{ label }}</span>
+{% else %}
+<span class="badge badge-neutral">{{ status }}</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro field(name, label, type="text", value="", error=None, hint=None, required=False, options=None, attrs=None) %}
+{% set _attrs = attrs or {} %}
+{% set error_id = name ~ "-error" %}
+{% set hint_id = name ~ "-hint" %}
+{% set field_class = "field" + (" field-invalid" if error else "") + (" field-check" if type == "checkbox" else "") %}
+<div class="{{ field_class }}">
+  {% if type == "checkbox" %}
+  <input type="checkbox" id="{{ name }}" name="{{ name }}"{% if value %} checked{% endif %}{% for k, v in _attrs.items() %} {{ k }}="{{ v }}"{% endfor %}>{% if required %} required{% endif %}
+  <label for="{{ name }}">{{ label }}</label>
+  {% elif type == "textarea" %}
+  <label for="{{ name }}">{{ label }}</label>
+  <textarea id="{{ name }}" name="{{ name }}"{% for k, v in _attrs.items() %} {{ k }}="{{ v }}"{% endfor %}{% if error %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% if required %} required{% endif %}>{{ value }}</textarea>
+  {% elif type == "select" %}
+  <label for="{{ name }}">{{ label }}</label>
+  <select id="{{ name }}" name="{{ name }}"{% for k, v in _attrs.items() %} {{ k }}="{{ v }}"{% endfor %}{% if error %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% if required %} required{% endif %}>
+  {% for opt_value, opt_label in options %}
+    <option value="{{ opt_value }}"{% if opt_value == value %} selected{% endif %}>{{ opt_label }}</option>
+  {% endfor %}
+  </select>
+  {% else %}
+  <label for="{{ name }}">{{ label }}</label>
+  <input type="{{ type }}" id="{{ name }}" name="{{ name }}" value="{{ value }}"{% for k, v in _attrs.items() %} {{ k }}="{{ v }}"{% endfor %}{% if error %} aria-invalid="true" aria-describedby="{{ error_id }}"{% endif %}{% if required %} required{% endif %}>
+  {% endif %}
+  {% if hint %}
+  <p class="hint" id="{{ hint_id }}">{{ hint }}</p>
+  {% endif %}
+  {% if error %}
+  <p class="error" id="{{ error_id }}">{{ error }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro button(text, kind="primary", type="submit") %}
+<button type="{{ type }}" class="btn btn-{{ kind }}">{{ text }}</button>
+{% endmacro %}
+
+
+{% macro post_button(action, text, kind="secondary") %}
+<form method="post" action="{{ action }}" class="inline-form">{{ button(text, kind) }}</form>
+{% endmacro %}
+
+
+{% macro empty(text) %}
+<p class="empty-state">{{ text }}</p>
+{% endmacro %}
+
+
+{% macro card(title=None) %}
+<section class="card">
+  {% if title %}
+  <h2 class="card-title">{{ title }}</h2>
+  {% endif %}
+  {{ caller() }}
+</section>
+{% endmacro %}
+
+
+{% macro when(day, time=None, today=None) %}
+{% if time is not none %}
+{% set dt = day.strftime("%Y-%m-%d") ~ "T" ~ time.strftime("%H:%M") %}
+{% else %}
+{% set dt = day.strftime("%Y-%m-%d") %}
+{% endif %}
+<time datetime="{{ dt }}">{{ datum(day) }}{% if time %} om {{ time.strftime("%H:%M") }}{% endif %}</time>
+{% if today is not none %}
+ <span class="relative">({{ relatief(day, today) }})</span>
+{% endif %}
+{% endmacro %}
+
+
+{% macro model_state(up, text) %}
+<p class="model-state model-state-{{ 'up' if up else 'down' }}"><span class="dot" aria-hidden="true"></span>{{ text }}</p>
+{% endmacro %}
+
+
+{% macro alert(text, kind="info") %}
+<div class="alert alert-{{ kind }}" role="status">{{ text }}</div>
+{% endmacro %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block content %}
+{# Badges #}
+<section class="card">
+  <h2 class="card-title">Badges</h2>
+  <div>
+    {{ ui.badge("queued") }}
+    {{ ui.badge("running") }}
+    {{ ui.badge("done") }}
+    {{ ui.badge("failed") }}
+    {{ ui.badge("unknown") }}
+  </div>
+</section>
+
+{# Buttons #}
+<section class="card">
+  <h2 class="card-title">Knoppen</h2>
+  <div>
+    {{ ui.button("Primair", kind="primary") }}
+    {{ ui.button("Secundair", kind="secondary") }}
+    {{ ui.button("Verwijderen", kind="danger") }}
+  </div>
+</section>
+
+{# Post button (inline-form) #}
+<section class="card">
+  <h2 class="card-title">Post-knop</h2>
+  <div>
+    {{ ui.post_button("/deadlines/1/delete", "Verwijderen", kind="danger") }}
+  </div>
+</section>
+
+{# Fields #}
+<section class="card">
+  <h2 class="card-title">Veldtypes</h2>
+  <form method="post" action="#">
+    {{ ui.field("naam", "Naam", type="text", value="Voorbeeld", hint="Vul uw volledige naam in") }}
+    {{ ui.field("datum_van", "Datum", type="date", value="2026-11-17") }}
+    {{ ui.field("notities", "Notities", type="textarea", value="Een lange notitie die hier staat", hint="Maximaal 1000 tekens") }}
+    {{ ui.field("prioriteit", "Prioriteit", type="select", value="medium", options=[("laag", "Laag"), ("medium", "Midden"), ("hoog", "Hoog")]) }}
+    {{ ui.field("aanmelden", "Aanmelden", type="checkbox", value="checked", hint="Meld u aan voor updates") }}
+    {{ ui.field("fout_veld", "Ongeldig veld", type="text", value="fout waarde", error="Dit veld is verplicht") }}
+    <div>{{ ui.button("Opslaan", kind="primary") }}</div>
+  </form>
+</section>
+
+{# Cards #}
+<section class="card">
+  <h2 class="card-title">Kaarten</h2>
+</section>
+
+<section class="card">
+  <div>Geen titel</div>
+</section>
+
+{# List with ui.when #}
+<section class="card">
+  <h2 class="card-title">Lijst met datums</h2>
+  <ul class="list">
+    <li class="list-item">
+      <span>Vergadering A</span>
+      {{ ui.when(d1, t1, today) }}
+    </li>
+    <li class="list-item">
+      <span>Vergadering B</span>
+      {{ ui.when(d2, t2, today) }}
+    </li>
+  </ul>
+</section>
+
+{# Model state #}
+<section class="card">
+  <h2 class="card-title">Model status</h2>
+  <div>
+    {{ ui.model_state(True, "Model bereikbaar") }}
+    {{ ui.model_state(False, "Model offline (pc slaapt of is gepauzeerd), laatst gezien 15 nov 2026 om 14:30") }}
+  </div>
+</section>
+
+{# Alerts #}
+<section class="card">
+  <h2 class="card-title">Meldingen</h2>
+  {{ ui.alert("Dit is een informatieve melding", kind="info") }}
+  {{ ui.alert("Het bericht is succesvol verzonden", kind="success") }}
+  {{ ui.alert("Er is een fout opgetreden bij het opslaan", kind="danger") }}
+</section>
+
+{# Empty state #}
+<section class="card">
+  <h2 class="card-title">Lege lijst</h2>
+  {{ ui.empty("Nog geen items gevonden.") }}
+</section>
+
+{% endblock %}

@@ -7,43 +7,20 @@ template globals.
 
 from __future__ import annotations
 
-from pathlib import Path as _Path
-
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.auth import require_team
 from app.clock import today_local
-from app.config import TIMEZONE, get_settings
+from app.config import get_settings
 from app.db import get_db
 from app.deadlines import DeadlineIn, create, past, upcoming, update
 from app.deadlines import delete as _delete_deadline
-from app.fmt import datum, datum_kort, relatief
-from app.meetings import STATUS_LABELS, _model_state_string
+from app.meetings import _model_state_string
 from app.models import AppState, Deadline, Job
 from app.teams import get_teams_client
-
-# Jinja2 environment
-_templates_dir = _Path(__file__).resolve().parent / "templates"
-_jinja_env = Environment(
-    loader=FileSystemLoader(str(_templates_dir)),
-    autoescape=select_autoescape(),
-)
-
-# Register Dutch date format functions as globals
-_jinja_env.globals["datum"] = datum
-_jinja_env.globals["datum_kort"] = datum_kort
-_jinja_env.globals["relatief"] = relatief
-_jinja_env.globals["TIMEZONE"] = TIMEZONE
-
-# Also register datum_kort as a filter (used in index.html and meeting_detail.html)
-_jinja_env.filters["datum_kort"] = datum_kort
-
-# FastAPI-compatible templates helper
-templates = Jinja2Templates(env=_jinja_env)
+from app.templating import STATUS_LABELS, templates
 
 router = APIRouter()
 
@@ -62,6 +39,7 @@ async def index(request: Request, _auth: None = Depends(require_team)) -> Respon
         model_status_row = session.query(AppState).filter(AppState.key == "model_status").first()
         ms = model_status_row.value if model_status_row else None
         model_state = _model_state_string(ms)
+        model_up = bool(ms and ms.get("up"))
 
     return templates.TemplateResponse(
         request,
@@ -71,6 +49,7 @@ async def index(request: Request, _auth: None = Depends(require_team)) -> Respon
             "last_jobs": last_jobs,
             "STATUS_LABELS": STATUS_LABELS,
             "model_state": model_state,
+            "model_up": model_up,
             "today": today,
         },
     )
@@ -99,11 +78,16 @@ async def deadlines_page(
             "upcoming_deadlines": upcoming_dl,
             "past_deadlines": past_dl,
             "today": today,
-            "form_title": "",
-            "form_due_date": "",
-            "form_due_time": "",
-            "form_note": "",
-            "errors": {},
+            "deadline": {
+                "id": None,
+                "data": {
+                    "title": "",
+                    "due_date": "",
+                    "due_time": "",
+                    "note": "",
+                },
+                "errors": {},
+            },
         },
     )
 
@@ -161,11 +145,16 @@ async def deadlines_add(
                     "upcoming_deadlines": upcoming_dl,
                     "past_deadlines": past_dl,
                     "today": today,
-                    "form_title": title,
-                    "form_due_date": due_date,
-                    "form_due_time": due_time,
-                    "form_note": note,
-                    "errors": errors,
+                    "deadline": {
+                        "id": None,
+                        "data": {
+                            "title": title,
+                            "due_date": due_date,
+                            "due_time": due_time,
+                            "note": note,
+                        },
+                        "errors": errors,
+                    },
                 },
                 status_code=422,
             )
@@ -192,12 +181,16 @@ async def deadlines_edit_get(
         request,
         "edit.html",
         {
-            "deadline": deadline,
-            "form_title": deadline.title,
-            "form_due_date": deadline.due_date.isoformat(),
-            "form_due_time": deadline.due_time.strftime("%H:%M") if deadline.due_time else "",
-            "form_note": deadline.note or "",
-            "errors": {},
+            "deadline": {
+                "id": deadline.id,
+                "data": {
+                    "title": deadline.title,
+                    "due_date": deadline.due_date.isoformat(),
+                    "due_time": deadline.due_time.strftime("%H:%M") if deadline.due_time else "",
+                    "note": deadline.note or "",
+                },
+                "errors": {},
+            },
         },
     )
 
@@ -245,12 +238,16 @@ async def deadlines_edit_post(
                 request,
                 "edit.html",
                 {
-                    "deadline": deadline,
-                    "form_title": title,
-                    "form_due_date": due_date,
-                    "form_due_time": due_time,
-                    "form_note": note,
-                    "errors": errors,
+                    "deadline": {
+                        "id": deadline.id,
+                        "data": {
+                            "title": title,
+                            "due_date": due_date,
+                            "due_time": due_time,
+                            "note": note,
+                        },
+                        "errors": errors,
+                    },
                 },
             )
 
@@ -442,5 +439,37 @@ async def privacy_page(
         "privacy.html",
         {
             "page_title": "Privacy",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Style guide (not in nav, linked from footer)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stijl")
+async def style_guide(
+    request: Request,
+    _auth: None = Depends(require_team),
+) -> Response:
+    """Style guide page showing every component in every variant."""
+    from datetime import date, time
+
+    today = date(2026, 11, 16)
+    d1 = date(2026, 11, 17)
+    d2 = date(2026, 11, 18)
+    t1 = time(9, 30)
+    t2 = time(14, 0)
+    return templates.TemplateResponse(
+        request,
+        "stijl.html",
+        {
+            "page_title": "Stijlgids",
+            "today": today,
+            "d1": d1,
+            "d2": d2,
+            "t1": t1,
+            "t2": t2,
         },
     )

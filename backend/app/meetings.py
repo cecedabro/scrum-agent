@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
-from pathlib import Path
 from typing import Any
 
 try:
@@ -13,8 +12,6 @@ except ImportError:
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.auth import require_team
 from app.cards import summary_card
@@ -25,25 +22,10 @@ from app.fmt import datum_kort
 from app.models import AppState, Job
 from app.settings import load as load_settings
 from app.teams import send_once
+from app.templating import STATUS_LABELS, templates
 from app.transcripts import TranscriptError, as_text, parse_docx, parse_vtt
 
-STATUS_LABELS = {
-    "queued": "in de wachtrij",
-    "running": "bezig",
-    "done": "klaar",
-    "failed": "mislukt",
-}
-
 router = APIRouter()
-
-_templates_dir = Path(__file__).resolve().parent / "templates"
-_meeting_env = Environment(
-    loader=FileSystemLoader(str(_templates_dir)),
-    autoescape=select_autoescape(),
-)
-_meeting_env.globals["TIMEZONE"] = TIMEZONE
-_meeting_env.filters["datum_kort"] = datum_kort
-_meeting_templates = Jinja2Templates(env=_meeting_env)
 
 
 def _build_context(jobs: list[Job], model_state: str, has_pending: bool) -> dict[str, Any]:
@@ -88,10 +70,12 @@ async def meetings_page(
 
     today = today_local()
 
-    return _meeting_templates.TemplateResponse(
+    up = bool(ms and ms.get("up"))
+    return templates.TemplateResponse(
         request,
         "meetings.html",
         {
+            "up": up,
             "page_title": "Vergaderingen",
             **_build_context(jobs, model_state, has_pending),
             "default_date": today.isoformat(),
@@ -114,11 +98,12 @@ async def meetings_partial(
     has_pending = any(j.status in ("queued", "running") for j in jobs)
     ms = model_status_row.value if model_status_row else None
     model_state = _model_state_string(ms) if ms else ""
+    up = bool(ms and ms.get("up"))
 
-    return _meeting_templates.TemplateResponse(
+    return templates.TemplateResponse(
         request,
         "_jobs.html",
-        _build_context(jobs, model_state, has_pending),
+        {**_build_context(jobs, model_state, has_pending), "up": up},
     )
 
 
@@ -138,10 +123,11 @@ async def meetings_upload(
         with next(get_db()) as session:
             jobs = session.query(Job).filter(Job.kind == "summary").order_by(Job.id.desc()).all()
         today = today_local()
-        return _meeting_templates.TemplateResponse(
+        return templates.TemplateResponse(
             request,
             "meetings.html",
             {
+                "up": False,
                 "page_title": "Vergaderingen",
                 "default_date": today.isoformat(),
                 "errors": {"file": "Alleen .vtt en .docx bestanden worden geaccepteerd"},
@@ -157,10 +143,11 @@ async def meetings_upload(
     data = await file.read(max_bytes)
     if len(data) > settings.MAX_UPLOAD_BYTES:
         today = today_local()
-        return _meeting_templates.TemplateResponse(
+        return templates.TemplateResponse(
             request,
             "meetings.html",
             {
+                "up": False,
                 "page_title": "Vergaderingen",
                 "default_date": today.isoformat(),
                 "errors": {"file": "Het bestand is te groot"},
@@ -179,10 +166,11 @@ async def meetings_upload(
             turns = parse_docx(data)
     except (TranscriptError, UnicodeDecodeError):
         today = today_local()
-        return _meeting_templates.TemplateResponse(
+        return templates.TemplateResponse(
             request,
             "meetings.html",
             {
+                "up": False,
                 "page_title": "Vergaderingen",
                 "default_date": today.isoformat(),
                 "errors": {"file": "Het transcriptbestand kan niet worden gelezen"},
@@ -204,10 +192,11 @@ async def meetings_upload(
             parsed_date = date.fromisoformat(meeting_date)
         except ValueError:
             today = today_local()
-            return _meeting_templates.TemplateResponse(
+            return templates.TemplateResponse(
                 request,
                 "meetings.html",
                 {
+                    "up": False,
                     "page_title": "Vergaderingen",
                     "default_date": today.isoformat(),
                     "errors": {"meeting_date": "Ongeldige datum (YYYY-MM-DD)"},
@@ -253,7 +242,7 @@ async def meeting_detail(
         settings_row = load_settings(session)
         auto_post = settings_row.summary_auto_post
 
-    return _meeting_templates.TemplateResponse(
+    return templates.TemplateResponse(
         request,
         "meeting_detail.html",
         {
