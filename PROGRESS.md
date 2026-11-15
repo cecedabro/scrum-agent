@@ -285,3 +285,10 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Rewrote `backend/app/templates/edit.html` (SPEC 3.4) to use `_ui.html` macros: forms use `ui.field` and `ui.button("Wijzigen", kind="primary")`.
 - Updated `backend/app/web.py` routes to use unified `deadline` dict (`{"id": ..., "data": {...}, "errors": {...}}`) instead of separate `errors`/`form_*` variables: `deadlines_page` (GET), `deadlines_add` (POST error), `deadlines_edit_get` (GET), `deadlines_edit_post` (POST error).
 - All 707 tests pass, 92% coverage, `make check` exit 0.
+
+## T56
+- Rewrote `backend/app/templates/meetings.html`: replaced manual form fields with `ui.field` (file input uses `attrs={"accept": ".vtt,.docx"}` since `ui.field` macro does not forward a bare `accept` param), `ui.button("Uploaden", kind="primary")`, error loop, removed inline `<h1>` (base.html handles `page_title`).
+- Rewrote `backend/app/templates/_jobs.html`: replaced `<table>` with `<ul class="list">`/`<li class="list-item">`, uses `ui.badge(job.status)`, `ui.model_state(up, model_state)`, `ui.empty`; HTMX polling (`hx-trigger="every 10s"`) wrapped in `{% if has_pending %}`.
+- Rewrote `backend/app/templates/meeting_detail.html`: replaced `<table>` with `ui.badge`, `ui.card` sections for summary/decisions/action_items/questions, formatted action items as `"owner: taak (due)"` (raw dicts never rendered), used `ui.post_button` for delete/post, removed inline `<h1>`.
+- Updated `backend/app/meetings.py`: added `"up": bool(ms and ms.get("up"))` to all 4 `TemplateResponse` context dicts in `meetings_page`, `meetings_partial`, and `meetings_upload` error paths so `_jobs.html` receives `up` for `ui.model_state`.
+- All 773 tests pass, 92% coverage, `make check` exit 0.

@@ -1,36 +1,26 @@
+{% import "_ui.html" as ui with context %}
 {% if has_pending %}
 <div class="jobs-wrapper" hx-get="/meetings/partial" hx-trigger="every 10s" hx-swap="outerHTML">
 {% else %}
 <div class="jobs-wrapper">
 {% endif %}
 {% if model_state %}
-<p class="model-state">{{ model_state }}</p>
+{{ ui.model_state(up, model_state) }}
 {% endif %}
 {% if not jobs %}
-<p class="empty-state">Nog geen vergaderingen.</p>
+{{ ui.empty("Nog geen vergaderingen.") }}
 {% else %}
-<table>
-    <thead>
-        <tr>
-            <th>Status</th>
-            <th>Titel</th>
-            <th>Datum</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for job in jobs %}
-        <tr>
-            <td>{{ STATUS_LABELS.get(job.status, job.status) }}</td>
-            <td><a href="/meetings/{{ job.id }}">{{ job.title }}</a></td>
-            <td>{{ job.meeting_date | datum_kort }}</td>
-        </tr>
-        {% if job.status == "failed" and job.error %}
-        <tr>
-            <td colspan="3" class="error">{{ job.error }}</td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-    </tbody>
-</table>
+<ul class="list">
+{% for job in jobs %}
+<li class="list-item">
+    <span class="list-badge">{{ ui.badge(job.status) }}</span>
+    <span class="list-title"><a href="/meetings/{{ job.id }}">{{ job.title }}</a></span>
+    <span class="list-date">{{ job.meeting_date | datum_kort }}</span>
+</li>
+{% if job.status == "failed" and job.error %}
+<li class="list-item list-error">{{ job.error }}</li>
+{% endif %}
+{% endfor %}
+</ul>
 {% endif %}
 </div>

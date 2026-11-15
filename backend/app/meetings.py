@@ -70,10 +70,12 @@ async def meetings_page(
 
     today = today_local()
 
+    up = bool(ms and ms.get("up"))
     return templates.TemplateResponse(
         request,
         "meetings.html",
         {
+            "up": up,
             "page_title": "Vergaderingen",
             **_build_context(jobs, model_state, has_pending),
             "default_date": today.isoformat(),
@@ -96,11 +98,12 @@ async def meetings_partial(
     has_pending = any(j.status in ("queued", "running") for j in jobs)
     ms = model_status_row.value if model_status_row else None
     model_state = _model_state_string(ms) if ms else ""
+    up = bool(ms and ms.get("up"))
 
     return templates.TemplateResponse(
         request,
         "_jobs.html",
-        _build_context(jobs, model_state, has_pending),
+        {**_build_context(jobs, model_state, has_pending), "up": up},
     )
 
 
@@ -124,6 +127,7 @@ async def meetings_upload(
             request,
             "meetings.html",
             {
+                "up": False,
                 "page_title": "Vergaderingen",
                 "default_date": today.isoformat(),
                 "errors": {"file": "Alleen .vtt en .docx bestanden worden geaccepteerd"},
@@ -143,6 +147,7 @@ async def meetings_upload(
             request,
             "meetings.html",
             {
+                "up": False,
                 "page_title": "Vergaderingen",
                 "default_date": today.isoformat(),
                 "errors": {"file": "Het bestand is te groot"},
@@ -165,6 +170,7 @@ async def meetings_upload(
             request,
             "meetings.html",
             {
+                "up": False,
                 "page_title": "Vergaderingen",
                 "default_date": today.isoformat(),
                 "errors": {"file": "Het transcriptbestand kan niet worden gelezen"},
@@ -190,6 +196,7 @@ async def meetings_upload(
                 request,
                 "meetings.html",
                 {
+                    "up": False,
                     "page_title": "Vergaderingen",
                     "default_date": today.isoformat(),
                     "errors": {"meeting_date": "Ongeldige datum (YYYY-MM-DD)"},
