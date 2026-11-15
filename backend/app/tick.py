@@ -2,7 +2,7 @@
 
 Usage: python -m app.tick
 
-Exits 0 on success, 1 when the database is unreachable.
+Exits 0 on success, 1 when the database stays unreachable (after ~20 s of retries).
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 import logging
 import sys
+import time
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
@@ -77,17 +78,26 @@ def run_tick(
     return log_lines
 
 
+DB_CONNECT_ATTEMPTS = 10
+DB_CONNECT_DELAY_S = 2.0
+
+
 def main() -> int:
     """CLI entrypoint. Exits 0 on success, 1 if DB is unreachable."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-    # Check DB reachability
+    # Check DB reachability. A fresh pod's network (policy rules) can lag a few seconds
+    # behind its start, so retry for about 20 s before giving up.
     engine = get_engine()
-    try:
-        engine.connect().close()
-    except Exception:
-        logger.error("database unreachable")
-        return 1
+    for attempt in range(1, DB_CONNECT_ATTEMPTS + 1):
+        try:
+            engine.connect().close()
+            break
+        except Exception as exc:
+            if attempt == DB_CONNECT_ATTEMPTS:
+                logger.error("database unreachable after %d attempts: %s", attempt, exc)
+                return 1
+            time.sleep(DB_CONNECT_DELAY_S)
 
     session = session_factory()()
     try:

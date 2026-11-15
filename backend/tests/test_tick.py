@@ -151,10 +151,37 @@ def test_main_returns_0_on_success(db) -> None:
 
 
 def test_main_returns_1_on_unreachable_db() -> None:
-    """main() returns 1 when the database cannot be reached."""
-    with patch("app.tick.get_engine") as mock_get_engine:
+    """main() returns 1 when the database stays unreachable after all retries."""
+    with (
+        patch("app.tick.get_engine") as mock_get_engine,
+        patch("app.tick.time.sleep") as mock_sleep,
+    ):
         mock_engine = mock_get_engine.return_value
         mock_engine.connect.side_effect = Exception("connection refused")
 
         rc = main()
     assert rc == 1
+    assert mock_engine.connect.call_count == 10
+    assert mock_sleep.call_count == 9
+
+
+def test_main_retries_until_the_db_answers() -> None:
+    """A new pod's network may lag: two failed connects, then the tick runs normally."""
+    from unittest.mock import MagicMock
+
+    ok = MagicMock()
+    with (
+        patch("app.tick.get_engine") as mock_get_engine,
+        patch("app.tick.time.sleep") as mock_sleep,
+        patch("app.tick.session_factory") as mock_factory,
+        patch("app.tick.run_tick", return_value=["ok"]) as mock_run,
+    ):
+        mock_get_engine.return_value.connect.side_effect = [
+            OSError("no route"),
+            OSError("no route"),
+            ok,
+        ]
+        rc = main()
+    assert rc == 0
+    assert mock_sleep.call_count == 2
+    mock_run.assert_called_once_with(mock_factory.return_value.return_value)
