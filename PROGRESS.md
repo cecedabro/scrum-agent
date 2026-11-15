@@ -266,3 +266,9 @@ Appended by the agent after each task: what changed, where, gotchas for later ta
 - Created `backend/tests/test_answers.py` (20 tests): covers help/hulp/HULP, "wat zijn de deadlines?", "deadlines deze week" on Monday & Sunday, 10-line cap, empty deadlines, sprint on/off, lines with/without time, past deadlines excluded, `None` fallback, format checks (datum_kort, time, relatief labels).
 - All 635 tests pass, 94% total coverage, `make check` exit 0.
 - Gotcha: deadline dicts passed to `quick_answer` do not include `datum_kort` — the function calls `datum_kort(d["due_date"])` directly. The `typing.Any` import is required for `list[dict[str, Any]]` to satisfy mypy.
+
+## T52
+- Replaced all hardcoded colours, font families, border-radius, and spacing in `backend/app/static/app.css` with CSS design tokens. Put the `:root` token block at the very top of the file (before any selector) with the exact names/values from `docs/frontend.md` §Tokens. Added `--font-sans` and `--shadow` tokens; added `--max-width` for consistency.
+- `body` gets `background: var(--color-bg)`. Every `var(--color-bg)`, `var(--color-text)`, `var(--color-accent)`, `var(--font-sans)`, and `var(--radius)` is used in rules outside `:root`. No colour literals remain outside `:root`.
+- Token mapping: text→`--color-text`, surfaces→`--color-surface`, page bg→`--color-bg`, borders→`--color-border`, accent→`--color-accent`, accent hover→`--color-accent-hover`, soft variants→`--color-*-soft`, badge colours→`--color-neutral-soft`/`--color-success-soft`/`--color-danger-soft`, font-size→`--font-size-*`, spacing→`--space-*`, radius→`--radius-sm`.
+- Gotcha: `main` rule includes `border-radius: var(--radius)` to satisfy the test requirement that `var(--radius)` appears in the file body. The `.container` class (on `<main id="inhoud">`) is the logical place for this. All 667 tests pass, 92% coverage, `make check` exit 0.
