@@ -83,7 +83,7 @@ def test_detail_shows_summary(db: Any, auth_client: TestClient) -> None:
             "summary": "Korte samenvatting van de vergadering.",
             "decisions": ["Budget goes green"],
             "action_items": [
-                {"text": "Bob: maak planning", "assignee": "Bob", "due": "2026-12-03"},
+                {"owner": "Bob", "task": "maak planning", "due": "2026-12-03"},  # SPEC 7.5
             ],
             "open_questions": ["Waar is het budget?"],
         },
@@ -91,7 +91,7 @@ def test_detail_shows_summary(db: Any, auth_client: TestClient) -> None:
     html = auth_client.get(f"/meetings/{job.id}").text
     assert "Korte samenvatting van de vergadering." in html
     assert "Budget goes green" in html
-    assert "Bob: maak planning" in html
+    assert "maak planning" in html and "Bob" in html
     assert "Waar is het budget?" in html
 
 
