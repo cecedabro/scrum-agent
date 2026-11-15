@@ -39,8 +39,8 @@ def test_get_privacy_has_main_and_footer(auth_client: TestClient) -> None:
     """/privacy extends base.html with main and footer."""
     r = auth_client.get("/privacy")
     assert r.status_code == 200
-    assert b"<main>" in r.content
-    assert b"<footer>" in r.content
+    assert b"<main" in r.content
+    assert b"<footer" in r.content
 
 
 # ------------------------------------------------------------------

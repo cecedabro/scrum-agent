@@ -10,3 +10,14 @@ backend/tests/test_page_deadlines.py     # written by hand for T09
 backend/tests/test_page_meetings_upload.py  # written by hand for T23-T24
 backend/tests/test_page_meetings_list.py    # written by hand for T25-T26
 backend/conftest.py                        # skips tests written ahead of their task
+backend/tests/test_ui_env.py               # written by hand for T51
+backend/tests/test_ui_tokens.py            # T52
+backend/tests/test_ui_components.py        # T53
+backend/tests/test_ui_layout.py            # T54
+backend/tests/test_ui_page_deadlines.py    # T55
+backend/tests/test_ui_page_meetings.py     # T56
+backend/tests/test_ui_page_other.py        # T57
+backend/tests/test_ui_css.py               # T58
+backend/tests/test_ui_styleguide.py        # T59
+backend/tests/test_ui_rules.py             # T60
+backend/tests/_ui_helpers.py               # helpers for the UI tests

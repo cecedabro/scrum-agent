@@ -125,8 +125,8 @@ def test_has_main_and_footer(auth_client: TestClient) -> None:
     """/ must contain <main> and <footer> elements."""
     r = auth_client.get("/")
     assert r.status_code == 200
-    assert "<main>" in r.text
-    assert "<footer>" in r.text
+    assert "<main" in r.text
+    assert "<footer" in r.text
 
 
 def test_has_nav_element(auth_client: TestClient) -> None:
