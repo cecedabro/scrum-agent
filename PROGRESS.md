@@ -391,3 +391,6 @@ Summary: 9 resources found parsing stdin - Valid: 7, Invalid: 0, Errors: 0, Skip
 - Added `GET /stijl` route in `app/web.py` (behind auth, not in nav, linked from footer already present in `base.html`).
 - Created `templates/stijl.html` showing every component in every variant: 4 status badges + unknown (neutral), 3 button kinds, a post_button, text/date/textarea/select/checkbox fields (one with hint, one with error), card with/without title, list with two rows using `ui.when` (with `<time>` and `relative` span), both model states, 3 alerts, and an empty state.
 - Route passes `today`, `d1`, `d2`, `t1`, `t2` (date/time objects for `ui.when` rendering).
+
+## T60
+- All 32 `test_ui_rules.py` checks pass and `make check` exits 0: no inline `style=` in any template, form controls (`<input>`, `<textarea>`, `<select>`) only in `_ui.html`, every page extends `base.html` and imports `_ui.html`, exactly one `<h1>` per page (verified via HTTP), no colour literals outside `:root` in `app.css`, single Jinja environment in `templating.py`. No code changes were needed — the T52–T58 refactors already established all design-system rules.
