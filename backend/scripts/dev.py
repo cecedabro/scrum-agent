@@ -14,7 +14,7 @@ import httpx
 from sqlalchemy import column, create_engine, insert, table
 from uvicorn import Config, Server
 
-BACKEND = Path(__file__).resolve().parent
+BACKEND = Path(__file__).resolve().parents[1]
 PGDATA = BACKEND / ".devdb"
 FAKE_LLM_PORT = 18080
 

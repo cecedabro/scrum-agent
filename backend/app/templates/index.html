@@ -5,22 +5,26 @@
 
 <h1>Overzicht</h1>
 
+<div class="card-grid">
 {% call ui.card("Komende deadlines") %}
 {% if next_deadlines %}
 <ul class="list">
 {% for dl in next_deadlines %}
 <li class="list-item">
-  <strong>{{ dl.title }}</strong>
-  {{ ui.when(dl.due_date, dl.due_time, today) }}
-  <p class="actions">
-    <a href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
-  </p>
+  <div class="list-main">
+    <span class="list-title">{{ dl.title }}</span>
+    <span class="list-meta">{{ ui.when(dl.due_date, dl.due_time, today) }}</span>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
+  </div>
 </li>
 {% endfor %}
 </ul>
 {% else %}
 {{ ui.empty("Geen deadlines om te bekijken.") }}
 {% endif %}
+<p class="form-actions"><a href="/deadlines">Alle deadlines &rarr;</a></p>
 {% endcall %}
 
 {% call ui.card("Laatste vergaderingen") %}
@@ -40,6 +44,8 @@
 {% else %}
 {{ ui.empty("Nog geen vergaderingen.") }}
 {% endif %}
+<p class="form-actions"><a href="/meetings">Transcript uploaden &rarr;</a></p>
 {% endcall %}
+</div>
 
 {% endblock %}

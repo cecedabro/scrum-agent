@@ -4,19 +4,21 @@
 {% block content %}
 {% macro deadline_row(dl) %}
 <li class="list-item">
-  <strong>{{ dl.title }}</strong>
-  {{ ui.when(dl.due_date, dl.due_time, today) }}
-  {% if dl.note %}<p class="note">{{ dl.note }}</p>{% endif %}
-  <p class="actions">
-    <a href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
+  <div class="list-main">
+    <span class="list-title">{{ dl.title }}</span>
+    <span class="list-meta">{{ ui.when(dl.due_date, dl.due_time, today) }}</span>
+    {% if dl.note %}<p class="note">{{ dl.note }}</p>{% endif %}
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="/deadlines/{{ dl.id }}/edit">Bewerken</a>
     {{ ui.post_button("/deadlines/" ~ dl.id ~ "/delete", "Verwijderen", kind="danger") }}
-  </p>
+  </div>
 </li>
 {% endmacro %}
 
 <h1>Deadlines</h1>
 
-<h2>Komende deadlines</h2>
+{% call ui.card("Komende deadlines") %}
 {% if upcoming_deadlines %}
 <ul class="list">
 {% for dl in upcoming_deadlines %}
@@ -26,24 +28,30 @@
 {% else %}
 {{ ui.empty("Geen komende deadlines.") }}
 {% endif %}
+{% endcall %}
 
 {% if past_deadlines %}
+{% call ui.card() %}
 <details>
-<summary>Vergane deadlines</summary>
+<summary>Vergane deadlines ({{ past_deadlines | length }})</summary>
 <ul class="list">
 {% for dl in past_deadlines %}
   {{ deadline_row(dl) }}
 {% endfor %}
 </ul>
 </details>
+{% endcall %}
 {% endif %}
 
-<h2>Deadline toevoegen</h2>
+{% call ui.card("Deadline toevoegen") %}
 <form method="post" action="/deadlines">
-  {{ ui.field("title", "Titel (1-200 tekens):", value=deadline.data.get("title", ""), error=deadline.errors.get("title")) }}
-  {{ ui.field("due_date", "Vervaldatum:", type="date", value=deadline.data.get("due_date", ""), error=deadline.errors.get("due_date")) }}
-  {{ ui.field("due_time", "Vervaltijd (optioneel, HH:MM):", type="time", value=deadline.data.get("due_time", ""), error=deadline.errors.get("due_time")) }}
-  {{ ui.field("note", "Notitie (optioneel, max 1000 tekens):", type="textarea", value=deadline.data.get("note", ""), error=deadline.errors.get("note")) }}
-  {{ ui.button("Toevoegen", kind="primary") }}
+  {{ ui.field("title", "Titel", value=deadline.data.get("title", ""), error=deadline.errors.get("title"), hint="1 tot 200 tekens") }}
+  <div class="form-grid">
+    {{ ui.field("due_date", "Datum", type="date", value=deadline.data.get("due_date", ""), error=deadline.errors.get("due_date")) }}
+    {{ ui.field("due_time", "Tijd (optioneel)", type="time", value=deadline.data.get("due_time", ""), error=deadline.errors.get("due_time")) }}
+  </div>
+  {{ ui.field("note", "Notitie (optioneel)", type="textarea", value=deadline.data.get("note", ""), error=deadline.errors.get("note"), hint="Maximaal 1000 tekens", attrs={"rows": 3}) }}
+  <div class="form-actions">{{ ui.button("Toevoegen", kind="primary") }}</div>
 </form>
+{% endcall %}
 {% endblock %}

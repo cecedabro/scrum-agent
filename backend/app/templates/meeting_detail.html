@@ -2,16 +2,20 @@
 {% import "_ui.html" as ui with context %}
 
 {% block content %}
-{{ ui.badge(job.status) }}
-
-{% if job.posted_at %}
-<p>Gepost: <time datetime="{{ job.posted_at.isoformat() }}">{{ job.posted_at | datum_kort }}</time></p>
-{% else %}
-<p>Nog niet gepost</p>
-{% endif %}
+<div class="meta">
+  {{ ui.badge(job.status) }}
+  {% if job.meeting_date %}<span>Vergadering van {{ job.meeting_date | datum_kort }}</span>{% endif %}
+  {% if job.posted_at %}
+  <span>Gepost: <time datetime="{{ job.posted_at.isoformat() }}">{{ job.posted_at | datum_kort }}</time></span>
+  {% else %}
+  <span>Nog niet gepost</span>
+  {% endif %}
+</div>
 
 {% if job.status == "done" and job.posted_at is none and not auto_post %}
-{{ ui.post_button("/meetings/" ~ job.id ~ "/post", "Post naar Teams") }}
+<div class="page-actions">
+{{ ui.post_button("/meetings/" ~ job.id ~ "/post", "Post naar Teams", kind="primary") }}
+</div>
 {% endif %}
 
 {% if job.status == "done" and job.result %}
@@ -19,9 +23,10 @@
 <p>{{ job.result.summary }}</p>
 {% endcall %}
 
+<div class="card-grid">
 {% if job.result.decisions %}
 {% call ui.card("Beslissingen") %}
-<ul>
+<ul class="items">
 {% for d in job.result.decisions %}
     <li>{{ d }}</li>
 {% endfor %}
@@ -31,17 +36,20 @@
 
 {% if job.result.action_items %}
 {% call ui.card("Actiepunten") %}
-<ul>
+<ul class="items">
 {% for a in job.result.action_items %}
-    <li>{{ a.task }}{% if a.owner %} ({{ a.owner }}){% endif %}{% if a.due %} <time datetime="{{ a.due }}">{{ a.due }}</time>{% endif %}</li>
+    <li>{{ a.task }}{% if a.owner or a.due %}
+      <span class="item-meta">{% if a.owner %}<span class="chip">{{ a.owner }}</span>{% endif %}{% if a.due %}<span>vóór <time datetime="{{ a.due }}">{{ a.due }}</time></span>{% endif %}</span>{% endif %}
+    </li>
 {% endfor %}
 </ul>
 {% endcall %}
 {% endif %}
+</div>
 
 {% if job.result.open_questions %}
-{% call ui.card("Vragen") %}
-<ul>
+{% call ui.card("Open vragen") %}
+<ul class="items">
 {% for q in job.result.open_questions %}
     <li>{{ q }}</li>
 {% endfor %}
@@ -50,6 +58,8 @@
 {% endif %}
 {% endif %}
 
-{{ ui.post_button("/meetings/" ~ job.id ~ "/delete", "Verwijderen", kind="danger") }}
-<a href="/meetings">Terug</a>
+<div class="page-actions">
+  <a class="btn btn-secondary" href="/meetings">&larr; Terug</a>
+  {{ ui.post_button("/meetings/" ~ job.id ~ "/delete", "Verwijderen", kind="danger") }}
+</div>
 {% endblock %}

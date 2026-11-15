@@ -83,7 +83,7 @@ def test_table_row_reminder_settings(auth_client: TestClient) -> None:
     """Table row: reminder settings."""
     r = auth_client.get("/privacy")
     assert r.status_code == 200
-    assert b"Herkinneringsinstellingen" in r.content
+    assert b"Herinneringsinstellingen" in r.content
     assert b"tot wijziging" in r.content
 
 
@@ -91,7 +91,7 @@ def test_table_row_transcript_file(auth_client: TestClient) -> None:
     """Table row: uploaded transcript file (nowhere)."""
     r = auth_client.get("/privacy")
     assert r.status_code == 200
-    assert b"Geupload transcriptbestand" in r.content
+    assert "Geüpload transcriptbestand".encode() in r.content
     assert b"nergens" in r.content
 
 

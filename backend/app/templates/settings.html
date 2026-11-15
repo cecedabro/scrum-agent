@@ -12,38 +12,7 @@
     ("zondag", "Zondag"),
 ] %}
 
-{% call ui.card("Webhook") %}
-<p>Webhook ingesteld: {{ "ja" if webhook_set else "nee" }}</p>
-{% endcall %}
-
-<form method="post" action="/settings">
-
-{% call ui.card("Wekelijkse overviews") %}
-{{ ui.field("weekly_enabled", "Inschakelen", type="checkbox", value=settings.weekly_enabled) }}
-{{ ui.field("weekly_weekday", "Dag van de week", type="select", options=weekdays, value=settings.weekly_weekday) }}
-{{ ui.field("weekly_time", "Tijd", type="time", value=settings.weekly_time) }}
-{% endcall %}
-
-{% call ui.card("Deadline herinneringen") %}
-{{ ui.field("deadline_reminder_enabled", "Inschakelen", type="checkbox", value=settings.deadline_reminder_enabled) }}
-{{ ui.field("deadline_reminder_time", "Tijd", type="time", value=settings.deadline_reminder_time) }}
-{{ ui.field("deadline_reminder_days_before", "Dagen vooraf (kommascheiden, bijv. 2,1)", type="text", value=settings.weekdays_before|join(',')) }}
-{% endcall %}
-
-{% call ui.card("Sprint nudges") %}
-{{ ui.field("sprint_enabled", "Inschakelen", type="checkbox", value=settings.sprint_enabled) }}
-{{ ui.field("sprint_end_date", "Einddatum sprint", type="text", value=settings.sprint_end_date) }}
-{{ ui.field("sprint_length", "Sprint lengte (1-4 weken)", type="number", value=settings.sprint_length) }}
-{{ ui.field("sprint_days_before", "Dagen vooraf (1-14)", type="number", value=settings.sprint_days_before) }}
-{{ ui.field("sprint_time", "Tijd", type="time", value=settings.sprint_time) }}
-{% endcall %}
-
-{% call ui.card("Samenvattingen") %}
-{{ ui.field("summary_auto_post", "Automatisch posten in Teams", type="checkbox", value=settings.summary_auto_post) }}
-{% endcall %}
-
-{{ ui.button("Opslaan", kind="primary") }}
-</form>
+<p class="lead">Wanneer de agent herinneringen in het Teams-kanaal zet. Herinneringen gebruiken het model niet.</p>
 
 {% if errors %}
 {% for error in errors %}
@@ -51,12 +20,52 @@
 {% endfor %}
 {% endif %}
 
-{{ ui.post_button("/settings/test", "Testbericht verzenden", kind="secondary") }}
-
 {% if test_result %}
-<div class="test-result">
-<p>Status: {{ test_result }}</p>
-</div>
+{{ ui.alert("Testbericht verstuurd. Status: " ~ test_result, kind="info") }}
 {% endif %}
+
+{% call ui.card("Teams-koppeling") %}
+{{ ui.model_state(webhook_set, "Webhook ingesteld: " ~ ("ja" if webhook_set else "nee")) }}
+<p>Stuur een testbericht om te controleren of berichten in het kanaal aankomen.</p>
+<div class="form-actions">{{ ui.post_button("/settings/test", "Testbericht verzenden", kind="secondary") }}</div>
+{% endcall %}
+
+<form method="post" action="/settings">
+
+<div class="card-grid">
+{% call ui.card("Wekelijks overzicht") %}
+{{ ui.field("weekly_enabled", "Inschakelen", type="checkbox", value=settings.weekly_enabled) }}
+<div class="form-grid">
+{{ ui.field("weekly_weekday", "Dag", type="select", options=weekdays, value=settings.weekly_weekday) }}
+{{ ui.field("weekly_time", "Tijd", type="time", value=settings.weekly_time) }}
+</div>
+{% endcall %}
+
+{% call ui.card("Deadlineherinneringen") %}
+{{ ui.field("deadline_reminder_enabled", "Inschakelen", type="checkbox", value=settings.deadline_reminder_enabled) }}
+<div class="form-grid">
+{{ ui.field("deadline_reminder_time", "Tijd", type="time", value=settings.deadline_reminder_time) }}
+{{ ui.field("deadline_reminder_days_before", "Dagen vooraf", type="text", value=settings.weekdays_before|join(','), hint="Kommagescheiden, bijv. 2,1") }}
+</div>
+{% endcall %}
+
+{% call ui.card("Einde sprint") %}
+{{ ui.field("sprint_enabled", "Inschakelen", type="checkbox", value=settings.sprint_enabled) }}
+<div class="form-grid">
+{{ ui.field("sprint_end_date", "Einddatum sprint", type="date", value=settings.sprint_end_date) }}
+{{ ui.field("sprint_length", "Sprintlengte (weken)", type="number", value=settings.sprint_length, attrs={"min": 1, "max": 4}) }}
+{{ ui.field("sprint_days_before", "Dagen vooraf", type="number", value=settings.sprint_days_before, attrs={"min": 1, "max": 14}) }}
+{{ ui.field("sprint_time", "Tijd", type="time", value=settings.sprint_time) }}
+</div>
+{% endcall %}
+
+{% call ui.card("Samenvattingen") %}
+{{ ui.field("summary_auto_post", "Automatisch posten in Teams", type="checkbox", value=settings.summary_auto_post) }}
+<p class="hint">Uit: je controleert elke samenvatting eerst en post hem zelf.</p>
+{% endcall %}
+</div>
+
+<div class="form-actions">{{ ui.button("Opslaan", kind="primary") }}</div>
+</form>
 
 {% endblock %}

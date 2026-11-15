@@ -4,12 +4,18 @@
 {% block content %}
 <h1>Deadline bewerken</h1>
 
+{% call ui.card() %}
 <form method="post" action="/deadlines/{{ deadline.id }}/edit">
-  {{ ui.field("title", "Titel (1-200 tekens):", value=deadline.data.get("title", ""), error=deadline.errors.get("title")) }}
-  {{ ui.field("due_date", "Vervaldatum:", type="date", value=deadline.data.get("due_date", ""), error=deadline.errors.get("due_date")) }}
-  {{ ui.field("due_time", "Vervaltijd (optioneel, HH:MM):", type="time", value=deadline.data.get("due_time", ""), error=deadline.errors.get("due_time")) }}
-  {{ ui.field("note", "Notitie (optioneel, max 1000 tekens):", type="textarea", value=deadline.data.get("note", ""), error=deadline.errors.get("note")) }}
-  {{ ui.button("Opslaan", kind="primary") }}
-  <a href="/deadlines">Annuleren</a>
+  {{ ui.field("title", "Titel", value=deadline.data.get("title", ""), error=deadline.errors.get("title"), hint="1 tot 200 tekens") }}
+  <div class="form-grid">
+    {{ ui.field("due_date", "Datum", type="date", value=deadline.data.get("due_date", ""), error=deadline.errors.get("due_date")) }}
+    {{ ui.field("due_time", "Tijd (optioneel)", type="time", value=deadline.data.get("due_time", ""), error=deadline.errors.get("due_time")) }}
+  </div>
+  {{ ui.field("note", "Notitie (optioneel)", type="textarea", value=deadline.data.get("note", ""), error=deadline.errors.get("note"), hint="Maximaal 1000 tekens", attrs={"rows": 3}) }}
+  <div class="form-actions">
+    {{ ui.button("Opslaan", kind="primary") }}
+    <a class="btn btn-secondary" href="/deadlines">Annuleren</a>
+  </div>
 </form>
+{% endcall %}
 {% endblock %}

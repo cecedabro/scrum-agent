@@ -2,20 +2,26 @@
 {% import "_ui.html" as ui with context %}
 
 {% block content %}
-{% for field, msg in errors.items() %}
-<p class="error">{{ msg }}</p>
-{% endfor %}
+<p class="lead">Upload het transcript van een Teams-vergadering (<code>.vtt</code> of <code>.docx</code>); het model maakt er een Nederlandse samenvatting van.</p>
 
+{% call ui.card("Transcript uploaden") %}
+{% for field, msg in errors.items() %}
+<div class="alert alert-danger" role="alert"><p class="error">{{ msg }}</p></div>
+{% endfor %}
 <form method="post" action="/meetings" enctype="multipart/form-data">
     <fieldset>
-        <legend>Transcript uploaden</legend>
-        {{ ui.field("file", "Bestand", type="file", attrs={"accept": ".vtt,.docx"}) }}
-        {{ ui.field("title", "Titel", value=title or "") }}
-        {{ ui.field("meeting_date", "Datum", value=default_date) }}
-        {{ ui.button("Uploaden", kind="primary") }}
+        {{ ui.field("file", "Bestand", type="file", attrs={"accept": ".vtt,.docx"}, hint="In Teams: de opname of het transcript openen en Downloaden kiezen.") }}
+        <div class="form-grid">
+            {{ ui.field("title", "Titel", value=title or "") }}
+            {{ ui.field("meeting_date", "Datum", type="date", value=default_date) }}
+        </div>
+        <div class="form-actions">{{ ui.button("Uploaden", kind="primary") }}</div>
     </fieldset>
 </form>
+{% endcall %}
 
+{% call ui.card("Vergaderingen") %}
 {% include "_jobs.html" %}
+{% endcall %}
 
 {% endblock %}

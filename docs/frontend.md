@@ -55,6 +55,9 @@ One shared Jinja environment, `app/templating.py`, is used by every router (`tem
   --max-width: 960px;
 }
 ```
+Extra tokens may be added below these (they are: `--color-accent-ring`, `--font-mono`,
+`--font-size-xs`, `--space-10`, `--radius-pill`, `--shadow-header`, `--control-height`,
+`--gutter`); the values above stay fixed.
 Outside `:root`, `app.css` contains no colour literals (`#…`, `rgb(`, `rgba(`, `hsl(`).
 
 ### Components (`templates/_ui.html`)
@@ -92,6 +95,21 @@ actions right, stacking on small screens), not tables. Badges are pill-shaped: q
 neutral-soft, running info-soft, done success-soft, failed danger-soft, with the matching
 text colour. Focus is always visible (`:focus-visible` outline in the accent colour).
 Readable at 360 px without horizontal scrolling. Light theme only.
+
+Layout helpers in `app.css` (use them instead of new one-off classes):
+- Header and footer span the full width; their content lines up with the 960 px column via
+  `--gutter`. Below 640 px the nav is one horizontally swipeable row under the brand.
+- `.card-grid`: cards side by side on wide screens, stacked on phones.
+- List rows: `<li class="list-item">` with `<div class="list-main">` (`.list-title`,
+  `.list-meta`, `.note`) and `<div class="actions">` (never a `<p>`: a `<form>` inside a
+  `<p>` breaks out of it). Buttons in `.actions` render small.
+- Forms: `.form-grid` puts short fields side by side; `.form-actions` holds the buttons.
+  Put length limits in the field `hint`, not in the label.
+- `.lead` (intro under the `<h1>`), `.meta` (badge and facts under the `<h1>`),
+  `.page-actions` (button row at the end of a page; "Terug" is an `<a class="btn btn-secondary">`).
+- `.items` for decision / action item / question lists, with `.item-meta` and `.chip`.
+- `.facts` / `.fact` / `.fact-detail` for label–value rows. No `<table>`: tables overflow on phones.
+- Inputs use 16 px text (smaller makes iOS Safari zoom in on focus).
 
 ### Style guide page
 `GET /stijl` (behind the team password, not in the nav, linked from the footer) shows every
