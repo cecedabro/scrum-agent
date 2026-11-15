@@ -130,7 +130,7 @@ Read docs/frontend.md §Design system first. The tests for these tasks are ALREA
 human (`tests/test_ui_*.py`, helpers in `tests/_ui_helpers.py`): read the task's test file
 first, do not change it, make it pass. Keep the existing page tests passing too. Never open
 `static/vendor/htmx.min.js`.
-- [ ] T51: `app/templating.py`: the one shared Jinja `env` (loader on `app/templates`, autoescape) with globals `datum`, `datum_kort`, `relatief`, `TIMEZONE`, `STATUS_LABELS` (move the dict here; `app.meetings` imports it) and filter `datum_kort`, plus `templates = Jinja2Templates(env=env)`. `app/web.py` and `app/meetings.py` use it and build no `Environment` of their own. No visual change.
+- [x] T51: `app/templating.py`: the one shared Jinja `env` (loader on `app/templates`, autoescape) with globals `datum`, `datum_kort`, `relatief`, `TIMEZONE`, `STATUS_LABELS` (move the dict here; `app.meetings` imports it) and filter `datum_kort`, plus `templates = Jinja2Templates(env=env)`. `app/web.py` and `app/meetings.py` use it and build no `Environment` of their own. No visual change.
   accept: cd backend && uv run pytest tests/test_ui_env.py -q
 - [ ] T52: Design tokens: put the `:root` block from docs/frontend.md §Tokens at the very top of `static/app.css` (exact names and values) and replace every colour, font family, radius and the main spacing in the rest of the file with `var(--…)`; `body` gets `background: var(--color-bg)`. No colour literal may remain outside `:root`. Edit the CSS in small steps.
   accept: cd backend && uv run pytest tests/test_ui_tokens.py -q

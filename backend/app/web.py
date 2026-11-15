@@ -7,43 +7,20 @@ template globals.
 
 from __future__ import annotations
 
-from pathlib import Path as _Path
-
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.auth import require_team
 from app.clock import today_local
-from app.config import TIMEZONE, get_settings
+from app.config import get_settings
 from app.db import get_db
 from app.deadlines import DeadlineIn, create, past, upcoming, update
 from app.deadlines import delete as _delete_deadline
-from app.fmt import datum, datum_kort, relatief
-from app.meetings import STATUS_LABELS, _model_state_string
+from app.meetings import _model_state_string
 from app.models import AppState, Deadline, Job
 from app.teams import get_teams_client
-
-# Jinja2 environment
-_templates_dir = _Path(__file__).resolve().parent / "templates"
-_jinja_env = Environment(
-    loader=FileSystemLoader(str(_templates_dir)),
-    autoescape=select_autoescape(),
-)
-
-# Register Dutch date format functions as globals
-_jinja_env.globals["datum"] = datum
-_jinja_env.globals["datum_kort"] = datum_kort
-_jinja_env.globals["relatief"] = relatief
-_jinja_env.globals["TIMEZONE"] = TIMEZONE
-
-# Also register datum_kort as a filter (used in index.html and meeting_detail.html)
-_jinja_env.filters["datum_kort"] = datum_kort
-
-# FastAPI-compatible templates helper
-templates = Jinja2Templates(env=_jinja_env)
+from app.templating import STATUS_LABELS, templates
 
 router = APIRouter()
 
